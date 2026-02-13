@@ -12,7 +12,7 @@ var testTimestamp = time.Date(2026, 1, 15, 10, 30, 0, 0, time.UTC)
 // newTestReport builds a representative ScanReport for testing.
 func newTestReport() *types.ScanReport {
 	return &types.ScanReport{
-		Version:   "1.0.1",
+		Version:   "1.0.2",
 		Timestamp: testTimestamp,
 		System: types.ScanSystem{
 			Hostname:      "test-host",
@@ -103,7 +103,7 @@ func newTestReport() *types.ScanReport {
 // newCleanReport builds a report with no failures.
 func newCleanReport() *types.ScanReport {
 	return &types.ScanReport{
-		Version:   "1.0.1",
+		Version:   "1.0.2",
 		Timestamp: testTimestamp,
 		System: types.ScanSystem{
 			Hostname: "clean-host",
@@ -144,7 +144,7 @@ func newCleanReport() *types.ScanReport {
 // newAcceptedReport builds a report with an accepted failure.
 func newAcceptedReport() *types.ScanReport {
 	return &types.ScanReport{
-		Version:   "1.0.1",
+		Version:   "1.0.2",
 		Timestamp: testTimestamp,
 		System: types.ScanSystem{
 			Hostname: "container-host",
@@ -180,7 +180,7 @@ func newAcceptedReport() *types.ScanReport {
 // newEmptyReport builds a report with zero results.
 func newEmptyReport() *types.ScanReport {
 	return &types.ScanReport{
-		Version:   "1.0.1",
+		Version:   "1.0.2",
 		Timestamp: testTimestamp,
 		System: types.ScanSystem{
 			Hostname: "empty-host",

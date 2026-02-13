@@ -172,84 +172,124 @@ func detectVM() (bool, string) {
 func detectVMWith(
 	sysVendorPath, productNamePath, cpuinfoPath, deviceTreePath string,
 ) (bool, string) {
-	// Primary: gopsutil host.Virtualization
-	role, virt, err := host.Virtualization()
-	if err == nil && role == "guest" && virt != "" {
-		switch virt {
-		case "docker", "lxc", "podman", "systemd-nspawn":
-			// not a VM — let container detection handle it
-		default:
-			return true, virt
-		}
+	if ok, hv := detectVMGopsutil(); ok {
+		return true, hv
 	}
-
-	// Fallback 1: DMI sys_vendor
-	vendorMap := map[string]string{
-		"qemu":                  "kvm",
-		"bochs":                 "kvm",
-		"innotek gmbh":          "virtualbox",
-		"vmware, inc.":          "vmware",
-		"microsoft corporation": "hyper-v",
-		"xen":                   "xen",
-		"amazon ec2":            "aws-nitro",
-		"google":                "gce",
-		"digitalocean":          "digitalocean",
-		"hetzner":               "hetzner",
+	if ok, hv := detectVMFromDMIVendor(sysVendorPath); ok {
+		return true, hv
 	}
-	if data, err := os.ReadFile(sysVendorPath); err == nil {
-		v := strings.TrimSpace(strings.ToLower(string(data)))
-		for substr, hv := range vendorMap {
-			if strings.Contains(v, substr) {
-				return true, hv
-			}
-		}
+	if ok, hv := detectVMFromProductName(productNamePath); ok {
+		return true, hv
 	}
-
-	// Fallback 2: DMI product_name
-	type productMatch struct {
-		substr, hv string
+	if ok, hv := detectVMFromCPUInfo(cpuinfoPath); ok {
+		return true, hv
 	}
-	productMatches := []productMatch{
-		{"kvm", "kvm"},
-		{"virtualbox", "virtualbox"},
-		{"vmware", "vmware"},
-		{"standard pc", "kvm"},
-		{"bhyve", "bhyve"},
-		{"virtual machine", "hyper-v"},
-	}
-	if data, err := os.ReadFile(productNamePath); err == nil {
-		p := strings.TrimSpace(strings.ToLower(string(data)))
-		for _, m := range productMatches {
-			if strings.Contains(p, m.substr) {
-				return true, m.hv
-			}
-		}
-	}
-
-	// Fallback 3: /proc/cpuinfo hypervisor flag (x86)
-	if data, err := os.ReadFile(cpuinfoPath); err == nil {
-		for _, line := range strings.Split(string(data), "\n") {
-			if strings.HasPrefix(line, "flags") && strings.Contains(line, " hypervisor") {
-				return true, "unknown"
-			}
-		}
-	}
-
-	// Fallback 4: device-tree (arm64 / non-DMI)
-	if data, err := os.ReadFile(deviceTreePath); err == nil {
-		d := strings.TrimSpace(strings.ToLower(string(data)))
-		d = strings.ReplaceAll(d, "\x00", "")
-		if strings.Contains(d, "kvm") {
-			return true, "kvm"
-		}
-		if strings.Contains(d, "xen") {
-			return true, "xen"
-		}
-		return true, d
+	if ok, hv := detectVMFromDeviceTree(deviceTreePath); ok {
+		return true, hv
 	}
 
 	if DebugMode {
 		fmt.Fprintf(os.Stderr, "debug: VM detection: no hypervisor indicators found\n")
 	}
 	return false, ""
+}
+
+// detectVMGopsutil uses gopsutil as the primary VM detection method.
+func detectVMGopsutil() (bool, string) {
+	role, virt, err := host.Virtualization()
+	if err != nil || role != "guest" || virt == "" {
+		return false, ""
+	}
+	// Container runtimes are handled by container detection, not VM detection.
+	switch virt {
+	case "docker", "lxc", "podman", "systemd-nspawn":
+		return false, ""
+	default:
+		return true, virt
+	}
+}
+
+// dmiVendorMap maps sys_vendor substrings to hypervisor names.
+var dmiVendorMap = map[string]string{
+	"qemu":                  "kvm",
+	"bochs":                 "kvm",
+	"innotek gmbh":          "virtualbox",
+	"vmware, inc.":          "vmware",
+	"microsoft corporation": "hyper-v",
+	"xen":                   "xen",
+	"amazon ec2":            "aws-nitro",
+	"google":                "gce",
+	"digitalocean":          "digitalocean",
+	"hetzner":               "hetzner",
+}
+
+// detectVMFromDMIVendor checks /sys/class/dmi/id/sys_vendor.
+func detectVMFromDMIVendor(path string) (bool, string) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false, ""
+	}
+	v := strings.TrimSpace(strings.ToLower(string(data)))
+	for substr, hv := range dmiVendorMap {
+		if strings.Contains(v, substr) {
+			return true, hv
+		}
+	}
+	return false, ""
+}
+
+// dmiProductMatches maps product_name substrings to hypervisor names.
+var dmiProductMatches = []struct{ substr, hv string }{
+	{"kvm", "kvm"},
+	{"virtualbox", "virtualbox"},
+	{"vmware", "vmware"},
+	{"standard pc", "kvm"},
+	{"bhyve", "bhyve"},
+	{"virtual machine", "hyper-v"},
+}
+
+// detectVMFromProductName checks /sys/class/dmi/id/product_name.
+func detectVMFromProductName(path string) (bool, string) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false, ""
+	}
+	p := strings.TrimSpace(strings.ToLower(string(data)))
+	for _, m := range dmiProductMatches {
+		if strings.Contains(p, m.substr) {
+			return true, m.hv
+		}
+	}
+	return false, ""
+}
+
+// detectVMFromCPUInfo checks /proc/cpuinfo for the hypervisor flag (x86).
+func detectVMFromCPUInfo(path string) (bool, string) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false, ""
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "flags") && strings.Contains(line, " hypervisor") {
+			return true, "unknown"
+		}
+	}
+	return false, ""
+}
+
+// detectVMFromDeviceTree checks the device-tree hypervisor compatible string (arm64).
+func detectVMFromDeviceTree(path string) (bool, string) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false, ""
+	}
+	d := strings.TrimSpace(strings.ToLower(string(data)))
+	d = strings.ReplaceAll(d, "\x00", "")
+	if strings.Contains(d, "kvm") {
+		return true, "kvm"
+	}
+	if strings.Contains(d, "xen") {
+		return true, "xen"
+	}
+	return true, d
 }

@@ -203,32 +203,12 @@ func validateKernelModuleName(name string) error {
 // VerifyChecksDirectory checks if the checks directory has safe ownership and permissions.
 // Returns a list of warnings (empty = directory is secure).
 func VerifyChecksDirectory(dir string) []string {
-	var warnings []string
-
-	info, err := os.Lstat(dir)
-	if err != nil {
-		warnings = append(warnings, fmt.Sprintf("cannot stat checks directory %q: %v", dir, err))
+	warnings, info := verifyDirEntry(dir)
+	if info == nil {
 		return warnings
 	}
 
-	if info.Mode()&os.ModeSymlink != 0 {
-		warnings = append(warnings, fmt.Sprintf("checks directory %q is a symlink — this could be exploited", dir))
-		return warnings
-	}
-
-	if !info.IsDir() {
-		warnings = append(warnings, fmt.Sprintf("checks path %q is not a directory", dir))
-		return warnings
-	}
-
-	perm := info.Mode().Perm()
-	if perm&0002 != 0 {
-		warnings = append(warnings, fmt.Sprintf("checks directory %q is world-writable (%04o) — anyone can inject checks", dir, perm))
-	}
-
-	if perm&0020 != 0 {
-		warnings = append(warnings, fmt.Sprintf("checks directory %q is group-writable (%04o) — group members can inject checks", dir, perm))
-	}
+	warnings = append(warnings, checkDirPermissions(dir, info.Mode().Perm())...)
 
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
@@ -241,34 +221,69 @@ func VerifyChecksDirectory(dir string) []string {
 			warnings = append(warnings, fmt.Sprintf("error accessing %q during walk: %v", path, err))
 			return nil
 		}
-
-		if d.Type()&os.ModeSymlink != 0 {
-			target, resolveErr := filepath.EvalSymlinks(path)
-			if resolveErr != nil {
-				warnings = append(warnings, fmt.Sprintf("symlink %q cannot be resolved: %v", path, resolveErr))
-				return nil
-			}
-			absTarget, _ := filepath.Abs(target)
-			if !strings.HasPrefix(absTarget, absDir+string(filepath.Separator)) && absTarget != absDir {
-				warnings = append(warnings, fmt.Sprintf("symlink %q points outside checks directory (→ %s)", path, absTarget))
-			}
-		}
-
-		ext := strings.ToLower(filepath.Ext(path))
-		if (ext == ".yaml" || ext == ".yml") && !d.IsDir() {
-			fi, fiErr := d.Info()
-			if fiErr != nil {
-				return nil
-			}
-			if fi.Mode().Perm()&0002 != 0 {
-				warnings = append(warnings, fmt.Sprintf("check file %q is world-writable (%04o)", path, fi.Mode().Perm()))
-			}
-		}
-
+		warnings = append(warnings, verifyWalkEntry(path, d, absDir)...)
 		return nil
 	})
 	if walkErr != nil {
 		warnings = append(warnings, fmt.Sprintf("walk error in checks directory: %v", walkErr))
+	}
+
+	return warnings
+}
+
+// verifyDirEntry checks that the checks directory exists, is not a symlink, and is a directory.
+// Returns accumulated warnings and the FileInfo (nil if the directory is invalid).
+func verifyDirEntry(dir string) ([]string, os.FileInfo) {
+	info, err := os.Lstat(dir)
+	if err != nil {
+		return []string{fmt.Sprintf("cannot stat checks directory %q: %v", dir, err)}, nil
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return []string{fmt.Sprintf("checks directory %q is a symlink — this could be exploited", dir)}, nil
+	}
+	if !info.IsDir() {
+		return []string{fmt.Sprintf("checks path %q is not a directory", dir)}, nil
+	}
+	return nil, info
+}
+
+// checkDirPermissions returns warnings if the directory is world-writable or group-writable.
+func checkDirPermissions(dir string, perm os.FileMode) []string {
+	var warnings []string
+	if perm&0002 != 0 {
+		warnings = append(warnings, fmt.Sprintf("checks directory %q is world-writable (%04o) — anyone can inject checks", dir, perm))
+	}
+	if perm&0020 != 0 {
+		warnings = append(warnings, fmt.Sprintf("checks directory %q is group-writable (%04o) — group members can inject checks", dir, perm))
+	}
+	return warnings
+}
+
+// verifyWalkEntry checks a single entry during the directory walk for symlinks
+// pointing outside the checks directory and world-writable check files.
+func verifyWalkEntry(path string, d os.DirEntry, absDir string) []string {
+	var warnings []string
+
+	if d.Type()&os.ModeSymlink != 0 {
+		target, resolveErr := filepath.EvalSymlinks(path)
+		if resolveErr != nil {
+			return []string{fmt.Sprintf("symlink %q cannot be resolved: %v", path, resolveErr)}
+		}
+		absTarget, _ := filepath.Abs(target)
+		if !strings.HasPrefix(absTarget, absDir+string(filepath.Separator)) && absTarget != absDir {
+			warnings = append(warnings, fmt.Sprintf("symlink %q points outside checks directory (→ %s)", path, absTarget))
+		}
+	}
+
+	ext := strings.ToLower(filepath.Ext(path))
+	if (ext == ".yaml" || ext == ".yml") && !d.IsDir() {
+		fi, fiErr := d.Info()
+		if fiErr != nil {
+			return warnings
+		}
+		if fi.Mode().Perm()&0002 != 0 {
+			warnings = append(warnings, fmt.Sprintf("check file %q is world-writable (%04o)", path, fi.Mode().Perm()))
+		}
 	}
 
 	return warnings

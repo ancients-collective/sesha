@@ -18,10 +18,10 @@ func (f *JSONLFormatter) Write(w io.Writer, report *types.ScanReport) error {
 
 	// Header line
 	header := struct {
-		Type      string           `json:"type"`
-		Version   string           `json:"version"`
-		Timestamp string           `json:"timestamp"`
-		System    types.ScanSystem `json:"system"`
+		Type      string            `json:"type"`
+		Version   string            `json:"version"`
+		Timestamp string            `json:"timestamp"`
+		System    types.ScanSystem  `json:"system"`
 		Summary   types.ScanSummary `json:"summary"`
 	}{
 		Type:      "header",
@@ -37,8 +37,8 @@ func (f *JSONLFormatter) Write(w io.Writer, report *types.ScanReport) error {
 	// One line per result
 	for _, r := range report.Results {
 		line := struct {
-			Type   string            `json:"type"`
-			Result types.TestResult  `json:"result"`
+			Type   string           `json:"type"`
+			Result types.TestResult `json:"result"`
 		}{
 			Type:   "result",
 			Result: r,

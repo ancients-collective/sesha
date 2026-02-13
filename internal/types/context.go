@@ -2,9 +2,9 @@ package types
 
 // Valid environment types.
 const (
-	EnvContainer  = "container"
-	EnvVM         = "vm"
-	EnvBareMetal  = "bare-metal"
+	EnvContainer = "container"
+	EnvVM        = "vm"
+	EnvBareMetal = "bare-metal"
 )
 
 // Valid intent profiles.

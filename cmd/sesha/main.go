@@ -22,7 +22,7 @@ import (
 )
 
 // Version information set at build time.
-var version = "1.0.1"
+var version = "1.0.2"
 
 // Config holds all parsed CLI flag values.
 type Config struct {
@@ -139,52 +139,109 @@ func main() {
 func run(cfg *Config) int {
 	scanStart := time.Now()
 
-	// --- Handle --validate early ---
+	// Handle --validate early
 	if cfg.Validate != "" {
 		return handleValidate(cfg.Validate)
 	}
 
-	// --- Validate flags ---
+	// Validate flags
+	if code := validateFlags(cfg); code >= 0 {
+		return code
+	}
+
+	// Setup output options
+	isDumb, sevFilter, tagsFilter, err := setupOutputOptions(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  ✗ %v\n", err)
+		return 1
+	}
+
+	// Detect system context and apply profile
+	ctx, isRoot, code := detectSystem(cfg)
+	if code >= 0 {
+		return code
+	}
+
+	showProgress := cfg.Format == "text" && !cfg.Quiet && cfg.OutputFile == ""
+	if showProgress {
+		fmt.Fprintf(os.Stderr, "\n")
+	}
+
+	// Verify checks directory (optional)
+	if code := verifyChecksDir(cfg); code >= 0 {
+		return code
+	}
+
+	// Load, filter, and optionally list checks
+	tests, code := loadAndFilterChecks(cfg, tagsFilter)
+	if code >= 0 {
+		return code
+	}
+
+	// Execute checks
+	allResults := executeChecks(cfg, tests, ctx, showProgress)
+
+	// Tally results
+	displayResults, pass, fail, skip, errCount, accepted := tallyResults(allResults, cfg.Show, sevFilter)
+
+	scanDuration := time.Since(scanStart)
+
+	// Quiet mode: exit code only
+	if cfg.Quiet {
+		return exitCode(fail, errCount)
+	}
+
+	// Build report
+	report := buildScanReport(cfg, ctx, isRoot, tests, displayResults,
+		pass, fail, skip, errCount, accepted, scanStart, scanDuration, sevFilter, tagsFilter)
+
+	// Write output
+	return writeReport(cfg, report, isDumb, pass, fail, skip)
+}
+
+// validateFlags checks --show, --profile, and --format values.
+// Returns -1 if valid, or an exit code (1) if invalid.
+func validateFlags(cfg *Config) int {
 	switch cfg.Show {
 	case "findings", "all", "fail", "pass":
-		// valid
 	default:
 		fmt.Fprintf(os.Stderr, "  ✗ Invalid --show value %q (must be findings, all, fail, or pass)\n", cfg.Show)
 		return 1
 	}
 	switch cfg.Profile {
 	case "auto", "all", "server", "workstation", "container":
-		// valid
 	default:
 		fmt.Fprintf(os.Stderr, "  ✗ Invalid --profile value %q (must be auto, all, server, workstation, or container)\n", cfg.Profile)
 		return 1
 	}
 	switch cfg.Format {
 	case "text", "json", "jsonl":
-		// valid
 	default:
 		fmt.Fprintf(os.Stderr, "  ✗ Invalid --format value %q (must be text, json, or jsonl)\n", cfg.Format)
 		return 1
 	}
+	return -1
+}
 
-	// Disable color for non-text output, --no-color flag, file output, or TERM=dumb
-	isDumb := output.IsDumbTerm()
+// setupOutputOptions configures color, severity filter, and tag filter.
+func setupOutputOptions(cfg *Config) (isDumb bool, sevFilter map[string]bool, tagsFilter map[string]bool, err error) {
+	isDumb = output.IsDumbTerm()
 	if cfg.NoColor || cfg.Format != "text" || cfg.OutputFile != "" || isDumb {
 		color.NoColor = true
 	}
 
-	sevFilter, err := parseSeverityFilter(cfg.Severity)
+	sevFilter, err = parseSeverityFilter(cfg.Severity)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "  ✗ Invalid --severity flag: %v\n", err)
-		return 1
+		return false, nil, nil, fmt.Errorf("Invalid --severity flag: %v", err)
 	}
 
-	tagsFilter := parseTagsFilter(cfg.Tags)
+	tagsFilter = parseTagsFilter(cfg.Tags)
+	return isDumb, sevFilter, tagsFilter, nil
+}
 
-	// --- 1. Build the function registry ---
-	registry := engine.NewFunctionRegistry(nil)
-
-	// --- 2. Detect system context ---
+// detectSystem detects the system context, applies the profile, and checks privilege.
+// Returns -1 as code if successful, or an exit code on failure.
+func detectSystem(cfg *Config) (ctx types.SystemContext, isRoot bool, code int) {
 	sysdetect.DebugMode = cfg.Debug
 	detector := sysdetect.NewOSDetector()
 	ctx, detectWarnings, err := sysdetect.DetectSystemContext(detector)
@@ -192,7 +249,7 @@ func run(cfg *Config) int {
 		if !cfg.Quiet {
 			fmt.Fprintf(os.Stderr, "  ✗ Failed to detect system context: %v\n", err)
 		}
-		return 1
+		return ctx, false, 1
 	}
 	if !cfg.Quiet {
 		for _, w := range detectWarnings {
@@ -201,50 +258,55 @@ func run(cfg *Config) int {
 	}
 
 	// Apply profile
-	if cfg.Profile == "all" {
+	switch cfg.Profile {
+	case "all":
 		ctx.IntentProfile = ""
-	} else if cfg.Profile == "auto" {
+	case "auto":
 		if ctx.Environment.Type == "container" {
 			cfg.Profile = "container"
 		} else {
 			cfg.Profile = "server"
 		}
 		ctx.IntentProfile = cfg.Profile
-	} else {
+	default:
 		ctx.IntentProfile = cfg.Profile
 	}
 
 	// Detect privilege level
-	isRoot := false
 	if u, err := user.Current(); err == nil && u.Uid == "0" {
 		isRoot = true
 	}
 
-	// --- 3. Stream header to stderr for immediate feedback (text mode only) ---
-	showProgress := cfg.Format == "text" && !cfg.Quiet && cfg.OutputFile == ""
-	if showProgress {
-		fmt.Fprintf(os.Stderr, "\n")
-	}
+	return ctx, isRoot, -1
+}
 
-	// --- 4. Verify checks directory (optional) ---
-	if cfg.Verify {
+// verifyChecksDir runs the optional --verify integrity check.
+// Returns -1 if skipped or passed, or an exit code on failure.
+func verifyChecksDir(cfg *Config) int {
+	if !cfg.Verify {
+		return -1
+	}
+	if !cfg.Quiet {
+		fmt.Fprintf(os.Stderr, "  ▸ Verifying checks directory: %s ...\n", cfg.ChecksDir)
+	}
+	warnings := engine.VerifyChecksDirectory(cfg.ChecksDir)
+	if len(warnings) > 0 {
 		if !cfg.Quiet {
-			fmt.Fprintf(os.Stderr, "  ▸ Verifying checks directory: %s ...\n", cfg.ChecksDir)
-		}
-		warnings := engine.VerifyChecksDirectory(cfg.ChecksDir)
-		if len(warnings) > 0 {
-			if !cfg.Quiet {
-				for _, w := range warnings {
-					fmt.Fprintf(os.Stderr, "    ✗ %s\n", w)
-				}
-				fmt.Fprintf(os.Stderr, "\n  Aborting: checks directory failed integrity verification.\n")
-				fmt.Fprintf(os.Stderr, "  Fix the above issues or run without --verify to skip this check.\n\n")
+			for _, w := range warnings {
+				fmt.Fprintf(os.Stderr, "    ✗ %s\n", w)
 			}
-			return 1
+			fmt.Fprintf(os.Stderr, "\n  Aborting: checks directory failed integrity verification.\n")
+			fmt.Fprintf(os.Stderr, "  Fix the above issues or run without --verify to skip this check.\n\n")
 		}
+		return 1
 	}
+	return -1
+}
 
-	// --- 5. Load checks ---
+// loadAndFilterChecks loads checks, applies tag/ID filters, and handles --list-checks.
+// Returns -1 as code if successful, or an exit code on early exit.
+func loadAndFilterChecks(cfg *Config, tagsFilter map[string]bool) ([]types.TestDefinition, int) {
+	registry := engine.NewFunctionRegistry(nil)
 	ldr := loader.New(registry.FunctionNames())
 	tests, errs := ldr.LoadDirectory(cfg.ChecksDir)
 	if !cfg.Quiet && len(errs) > 0 {
@@ -256,57 +318,70 @@ func run(cfg *Config) int {
 		if !cfg.Quiet {
 			fmt.Fprintf(os.Stderr, "  ✗ No checks found in %s\n", cfg.ChecksDir)
 		}
-		return 1
+		return nil, 1
 	}
 
-	// --- 5a. --tags: pre-execution filter by tags ---
+	// --tags filter
 	if tagsFilter != nil {
-		var tagMatched []types.TestDefinition
-		for _, t := range tests {
-			if matchesTags(t, tagsFilter) {
-				tagMatched = append(tagMatched, t)
-			}
-		}
-		if len(tagMatched) == 0 {
+		tests = filterByTags(tests, tagsFilter)
+		if len(tests) == 0 {
 			if !cfg.Quiet {
 				fmt.Fprintf(os.Stderr, "  ✗ No checks match --tags %q\n", cfg.Tags)
 			}
-			return 1
+			return nil, 1
 		}
-		tests = tagMatched
 	}
 
-	// --- 5b. --list-checks: print available check IDs and exit ---
+	// --list-checks
 	if cfg.ListChecks {
+		sysdetect.DebugMode = cfg.Debug
+		detector := sysdetect.NewOSDetector()
+		ctx, _, _ := sysdetect.DetectSystemContext(detector)
 		printCheckList(tests, ctx, cfg.Profile)
-		return 0
+		return nil, 0
 	}
 
-	// --- 5b. --id: filter to a single check ---
+	// --id filter
 	if cfg.CheckID != "" {
-		var matched []types.TestDefinition
-		for _, t := range tests {
-			if t.ID == cfg.CheckID {
-				matched = append(matched, t)
-				break
-			}
-		}
-		if len(matched) == 0 {
-			fmt.Fprintf(os.Stderr, "  ✗ No check found with ID %q\n", cfg.CheckID)
-			if suggestions := suggestIDs(cfg.CheckID, tests); len(suggestions) > 0 {
-				fmt.Fprintf(os.Stderr, "\n  Did you mean:\n")
-				for _, s := range suggestions {
-					fmt.Fprintf(os.Stderr, "    • %s\n", s)
-				}
-			}
-			fmt.Fprintf(os.Stderr, "\n  Use --list-checks to see all available check IDs.\n")
-			return 1
-		}
-		tests = matched
-		cfg.Show = "all"
+		return filterByID(cfg, tests)
 	}
 
-	// --- 6. Execute checks ---
+	return tests, -1
+}
+
+// filterByTags returns tests that match any of the given tags.
+func filterByTags(tests []types.TestDefinition, tagsFilter map[string]bool) []types.TestDefinition {
+	var matched []types.TestDefinition
+	for _, t := range tests {
+		if matchesTags(t, tagsFilter) {
+			matched = append(matched, t)
+		}
+	}
+	return matched
+}
+
+// filterByID returns the single test matching cfg.CheckID, or exits with an error.
+func filterByID(cfg *Config, tests []types.TestDefinition) ([]types.TestDefinition, int) {
+	for _, t := range tests {
+		if t.ID == cfg.CheckID {
+			cfg.Show = "all"
+			return []types.TestDefinition{t}, -1
+		}
+	}
+	fmt.Fprintf(os.Stderr, "  ✗ No check found with ID %q\n", cfg.CheckID)
+	if suggestions := suggestIDs(cfg.CheckID, tests); len(suggestions) > 0 {
+		fmt.Fprintf(os.Stderr, "\n  Did you mean:\n")
+		for _, s := range suggestions {
+			fmt.Fprintf(os.Stderr, "    • %s\n", s)
+		}
+	}
+	fmt.Fprintf(os.Stderr, "\n  Use --list-checks to see all available check IDs.\n")
+	return nil, 1
+}
+
+// executeChecks runs all checks with optional progress output.
+func executeChecks(cfg *Config, tests []types.TestDefinition, ctx types.SystemContext, showProgress bool) []types.TestResult {
+	registry := engine.NewFunctionRegistry(nil)
 	executor := engine.NewExecutor(registry, ctx)
 	if cfg.CheckID != "" {
 		executor.ForceRun = true
@@ -325,11 +400,13 @@ func run(cfg *Config) int {
 	if showProgress {
 		fmt.Fprintf(os.Stderr, "\r  Scanning... done    \n")
 	}
+	return allResults
+}
 
-	// --- 7. Tally and build report ---
-	var displayResults []types.TestResult
-	pass, fail, skip, errCount, accepted := 0, 0, 0, 0, 0
-
+// tallyResults counts results by status and filters for display.
+func tallyResults(allResults []types.TestResult, show string, sevFilter map[string]bool) (
+	displayResults []types.TestResult, pass, fail, skip, errCount, accepted int,
+) {
 	for _, r := range allResults {
 		switch r.Status {
 		case types.StatusPass:
@@ -343,33 +420,27 @@ func run(cfg *Config) int {
 		case types.StatusAccepted:
 			accepted++
 		}
-
-		if shouldDisplay(r, cfg.Show, sevFilter) {
+		if shouldDisplay(r, show, sevFilter) {
 			displayResults = append(displayResults, r)
 		}
 	}
+	return
+}
 
-	scanDuration := time.Since(scanStart)
-
-	// Quiet mode: exit code only (0 = clean, 1 = findings, 2 = errors)
-	if cfg.Quiet {
-		if fail > 0 {
-			return 1
-		}
-		if errCount > 0 {
-			return 2
-		}
-		return 0
-	}
-
-	// Convert severity filter map to slice for report.
+// buildScanReport assembles the scan report struct.
+func buildScanReport(cfg *Config, ctx types.SystemContext, isRoot bool,
+	tests []types.TestDefinition, displayResults []types.TestResult,
+	pass, fail, skip, errCount, accepted int,
+	scanStart time.Time, scanDuration time.Duration,
+	sevFilter, tagsFilter map[string]bool,
+) *types.ScanReport {
 	var sevList []string
 	for k := range sevFilter {
 		sevList = append(sevList, k)
 	}
 	sort.Strings(sevList)
 
-	report := &types.ScanReport{
+	return &types.ScanReport{
 		Version:   version,
 		Timestamp: scanStart,
 		System: types.ScanSystem{
@@ -406,8 +477,10 @@ func run(cfg *Config) int {
 		},
 		Results: displayResults,
 	}
+}
 
-	// --- 8. Format and write output ---
+// writeReport formats and writes the scan report to stdout or a file.
+func writeReport(cfg *Config, report *types.ScanReport, isDumb bool, pass, fail, skip int) int {
 	termWidth := 0
 	if cfg.OutputFile == "" && cfg.Format == "text" {
 		if fd := int(os.Stdout.Fd()); term.IsTerminal(fd) {
@@ -457,7 +530,11 @@ func run(cfg *Config) int {
 			pass, fail, skip, cfg.OutputFile)
 	}
 
-	// Exit codes: 0 = clean, 1 = findings, 2 = tool errors only
+	return exitCode(fail, report.Summary.Errors)
+}
+
+// exitCode returns the sesha exit code: 0 = clean, 1 = findings, 2 = errors only.
+func exitCode(fail, errCount int) int {
 	if fail > 0 {
 		return 1
 	}

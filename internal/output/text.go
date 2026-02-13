@@ -15,14 +15,13 @@ import (
 //
 // Every result line follows a strict column grid:
 //
-//     col 0    4   6       14      16                          maxLine
-//     │margin│ I │ BADGE   │2sp│ CHECK NAME ...           DURATION │
-//              ↑   ↑              ↑                              ↑
-//           colIcon colBadge    colName                    right-aligned
+//	col 0    4   6       14      16                          maxLine
+//	│margin│ I │ BADGE   │2sp│ CHECK NAME ...           DURATION │
+//	         ↑   ↑              ↑                              ↑
+//	      colIcon colBadge    colName                    right-aligned
 //
 // Detail blocks start at colDetail and use labelWidth-padded labels
 // so every value begins at colValue.
-//
 const (
 	colMargin  = 4   // left margin (spaces) for result/detail lines
 	colIcon    = 4   // column of the 1-char status icon
@@ -482,53 +481,27 @@ func (f *TextFormatter) wrap(text string, startCol, wrapCol int) string {
 
 // ─── Icons ───────────────────────────────────────────────────────────
 
+var unicodeIcons = map[string]string{
+	"pass": "✓", "fail": "✗", "skip": "○", "warn": "⚠",
+	"error": "⚠", "accepted": "≋", "info": "ℹ", "shield": "🛡",
+	"section": "▸",
+}
+
+var asciiIcons = map[string]string{
+	"pass": "+", "fail": "x", "skip": "-", "warn": "!",
+	"error": "!", "accepted": "~", "info": "i", "shield": "!",
+	"section": ">",
+}
+
 func (f *TextFormatter) icon(name string) string {
+	icons := unicodeIcons
 	if f.Dumb {
-		switch name {
-		case "pass":
-			return "+"
-		case "fail":
-			return "x"
-		case "skip":
-			return "-"
-		case "warn":
-			return "!"
-		case "error":
-			return "!"
-		case "accepted":
-			return "~"
-		case "info":
-			return "i"
-		case "shield":
-			return "!"
-		case "section":
-			return ">"
-		default:
-			return "?"
-		}
+		icons = asciiIcons
 	}
-	switch name {
-	case "pass":
-		return "✓"
-	case "fail":
-		return "✗"
-	case "skip":
-		return "○"
-	case "warn":
-		return "⚠"
-	case "error":
-		return "⚠"
-	case "accepted":
-		return "≋"
-	case "info":
-		return "ℹ"
-	case "shield":
-		return "🛡"
-	case "section":
-		return "▸"
-	default:
-		return "?"
+	if ic, ok := icons[name]; ok {
+		return ic
 	}
+	return "?"
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────

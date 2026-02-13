@@ -111,8 +111,8 @@ func TestTextFormatter_Write_DumbTerminal(t *testing.T) {
 	})
 
 	// Dumb mode uses ASCII icons
-	assert.Contains(t, out, "+")  // pass
-	assert.Contains(t, out, "x")  // fail
+	assert.Contains(t, out, "+") // pass
+	assert.Contains(t, out, "x") // fail
 }
 
 func TestTextFormatter_Write_ShowAll(t *testing.T) {
@@ -123,7 +123,7 @@ func TestTextFormatter_Write_ShowAll(t *testing.T) {
 	})
 
 	assert.Contains(t, out, "Results")
-	assert.Contains(t, out, "Password file exists") // pass result
+	assert.Contains(t, out, "Password file exists")    // pass result
 	assert.Contains(t, out, "SSH Root Login Disabled") // fail result
 
 	// Without --explain, no extended detail in --show all
