@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] — 2026-02-13
+
+### Fixed
+- Replace LICENSE with canonical Apache 2.0 text so pkg.go.dev detects it correctly
+  (prior version had 3 minor word deviations that caused `licensecheck` to report UNKNOWN)
+
 ## [1.0.6] — 2026-02-13
 
 ### Added
