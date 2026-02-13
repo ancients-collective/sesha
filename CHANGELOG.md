@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] — 2026-02-13
+
+### Added
+- CodeQL static analysis workflow (SAST) for Go
+- Fuzz tests for allowlist validation, Levenshtein distance, and YAML check parsing
+- SLSA build provenance attestation in release workflow
+
+### Changed
+- Pin remaining `github/codeql-action/upload-sarif` to full commit SHA in Scorecard workflow
+- Restrict top-level `permissions` to `{}` in release workflow (least-privilege)
+- Move `contents: write` to job-level permissions in release workflow
+
 ## [1.0.5] — 2026-02-13
 
 ### Added

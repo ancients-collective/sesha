@@ -93,7 +93,7 @@ func (e *AllowlistExecutor) Execute(cmd string, args []string) ([]byte, error) {
 		return nil, fmt.Errorf("command %q not in allowlist", cmd)
 	}
 
-	if err := validateArgs(spec, args); err != nil {
+	if err := ValidateArgs(spec, args); err != nil {
 		return nil, err
 	}
 
@@ -110,9 +110,9 @@ func (e *AllowlistExecutor) Execute(cmd string, args []string) ([]byte, error) {
 	return output, err
 }
 
-// validateArgs checks that all arguments comply with the CommandSpec constraints.
+// ValidateArgs checks that all arguments comply with the CommandSpec constraints.
 // Rejects unrecognized flags and validates positional argument content.
-func validateArgs(spec CommandSpec, args []string) error {
+func ValidateArgs(spec CommandSpec, args []string) error {
 	positionalCount := 0
 
 	for _, arg := range args {
