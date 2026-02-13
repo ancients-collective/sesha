@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sesha — Catch drift, not feelings</title>
+  <meta name="description" content="Sesha is a YAML-driven security auditing tool for Linux. Single binary, zero runtime dependencies, declarative checks.">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 4rem;
+    }
+
+    /* ─── Hero ─── */
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .ascii-banner {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
+      font-size: 0.85rem;
+      line-height: 1.35;
+      color: #58a6ff;
+      margin-bottom: 0.5rem;
+      white-space: pre;
+      display: inline-block;
+      text-align: left;
+    }
+
+    .tagline {
+      font-size: 1.1rem;
+      color: #8b949e;
+      font-style: italic;
+      margin-bottom: 1.5rem;
+    }
+
+    .cta {
+      display: inline-block;
+      padding: 0.6rem 1.6rem;
+      background: #1f6feb;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+
+    .cta:hover { background: #388bfd; }
+
+    /* ─── Sections ─── */
+    h2 {
+      font-size: 1.35rem;
+      color: #f0f6fc;
+      margin: 2.5rem 0 0.75rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid #21262d;
+    }
+
+    p { margin-bottom: 1rem; }
+
+    ul {
+      padding-left: 1.4rem;
+      margin-bottom: 1rem;
+    }
+
+    li { margin-bottom: 0.35rem; }
+
+    code {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
+      background: #161b22;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.88rem;
+      color: #79c0ff;
+    }
+
+    pre {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      margin-bottom: 1rem;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: #c9d1d9;
+    }
+
+    .accent { color: #58a6ff; }
+
+    /* ─── Categories grid ─── */
+    .categories {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.6rem;
+      margin: 1rem 0;
+    }
+
+    .cat {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      text-align: center;
+      color: #8b949e;
+    }
+
+    .cat span { color: #58a6ff; }
+
+    /* ─── Footer ─── */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #21262d;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #484f58;
+    }
+
+    footer a { color: #58a6ff; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 500px) {
+      .ascii-banner { font-size: 0.65rem; }
+      .container { padding: 2rem 1rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="ascii-banner">   ___  ___ ___| |__   __ _
+  / __|/ _ / __| '_ \ / _` |
+  \__ |  __\__ | | | | (_| |
+  |___/\___|___|_| |_|\__,_|</div>
+      <p class="tagline">Catch drift, not feelings.</p>
+      <a href="https://github.com/ancients-collective/sesha" class="cta">View on GitHub</a>
+    </div>
+
+    <!-- What -->
+    <h2>What is Sesha?</h2>
+    <p>
+      Sesha is a <strong>YAML-driven security auditing tool</strong> for Linux.
+      Write declarative checks in plain YAML — no code, no plugins, no agents.
+      Ship it as a single static binary with zero runtime dependencies.
+    </p>
+    <p>
+      It auto-detects your environment (bare-metal, VM, or container),
+      filters checks by OS, distro, and profile, then reports findings in
+      human-readable text, JSON, or JSONL.
+    </p>
+
+    <!-- Philosophy -->
+    <h2>Philosophy</h2>
+    <ul>
+      <li><strong>Lean and single-purpose</strong> — audit hosts, nothing else</li>
+      <li><strong>Declarative</strong> — checks are data, not code. Anyone can read and write them</li>
+      <li><strong>Security-first</strong> — all command execution goes through a strict allowlist. No shell invocation, ever</li>
+      <li><strong>Checks tell a story</strong> — each check describes <em>what</em> it verifies, <em>why</em> it matters, and <em>how</em> to fix it</li>
+      <li><strong>Zero dependencies at runtime</strong> — one binary, drop it anywhere</li>
+    </ul>
+
+    <!-- Quick Start -->
+    <h2>Quick Start</h2>
+    <pre><code><span class="accent"># Install</span>
+go install github.com/ancients-collective/sesha/cmd/sesha@latest
+
+<span class="accent"># Run — show findings (default)</span>
+sesha
+
+<span class="accent"># Show all check results</span>
+sesha --show all
+
+<span class="accent"># JSON for SIEM ingestion</span>
+sesha --format json
+
+<span class="accent"># Filter by severity</span>
+sesha --sev critical,high</code></pre>
+
+    <!-- Categories -->
+    <h2>Check Categories</h2>
+    <p>Sesha ships with checks across 7 security categories:</p>
+    <div class="categories">
+      <div class="cat"><span>&#x1F512;</span> Authentication</div>
+      <div class="cat"><span>&#x1F4C1;</span> Filesystem</div>
+      <div class="cat"><span>&#x2699;&#xFE0F;</span> Kernel</div>
+      <div class="cat"><span>&#x1F4DD;</span> Logging</div>
+      <div class="cat"><span>&#x1F310;</span> Network</div>
+      <div class="cat"><span>&#x1F511;</span> SSH</div>
+      <div class="cat"><span>&#x1F5A5;&#xFE0F;</span> System</div>
+    </div>
+    <p>
+      Writing your own checks is simple —
+      see the <a href="https://github.com/ancients-collective/sesha/blob/main/docs/writing-checks.md" style="color:#58a6ff;">check authoring guide</a>.
+    </p>
+
+    <!-- Footer -->
+    <footer>
+      <p>
+        <a href="https://github.com/ancients-collective/sesha">GitHub</a> &middot;
+        Apache License 2.0 &middot;
+        Ancients Collective
+      </p>
+    </footer>
+
+  </div>
+</body>
+</html>
