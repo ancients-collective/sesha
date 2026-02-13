@@ -190,9 +190,9 @@ sesha/
 │   ├── context/         # System detection (OS, distro, container/VM)
 │   ├── loader/          # YAML check loader and validator
 │   └── output/          # Output formatters (text, JSON, JSONL)
-├── checks/
-│   └── essentials/      # Starter checks
-├── docs/                # Documentation
+├── checks/              # Built-in security checks (YAML)
+├── docs/                # Project documentation
+├── site/                # GitHub Pages website (deployed via CI)
 ├── go.mod
 └── README.md
 ```
