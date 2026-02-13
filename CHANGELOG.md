@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.8] — 2026-02-13
+
+### Fixed
+- Replace dynamic shields.io GitHub-API badges with static badges to avoid token pool exhaustion errors
+
+### Changed
+- Bump version to 1.0.8
+- Update Makefile release target to auto-update release badge on version bump
+
 ## [1.0.7] — 2026-02-13
 
 ### Fixed

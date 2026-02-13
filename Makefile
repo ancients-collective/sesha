@@ -37,6 +37,7 @@ release:
 	@echo "==> Bumping to v$(VERSION)"
 	@echo "$(VERSION)" > VERSION
 	@sed -i 's/^var version = ".*"/var version = "$(VERSION)"/' cmd/sesha/main.go
+	@sed -i 's|release-v[0-9]*\.[0-9]*\.[0-9]*-|release-v$(VERSION)-|g' README.md site/index.html
 	@echo ""
 	@echo "==> Running tests"
 	@$(MAKE) test
