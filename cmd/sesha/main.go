@@ -23,7 +23,7 @@ import (
 
 // version is set at build time via -ldflags. The default is a dev fallback
 // for plain `go install` or `go run` usage.
-var version = "1.0.3"
+var version = "1.0.4"
 
 // Config holds all parsed CLI flag values.
 type Config struct {
