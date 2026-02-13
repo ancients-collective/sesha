@@ -2,7 +2,7 @@
 
 [![Go Version](https://img.shields.io/github/go-mod/go-version/ancients-collective/sesha)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ancients-collective/sesha)](https://github.com/ancients-collective/sesha/blob/main/LICENSE)
-[![Latest Release](https://img.shields.io/github/v/tag/ancients-collective/sesha?label=release&sort=semver)](https://github.com/ancients-collective/sesha/releases)
+[![Latest Release](https://img.shields.io/github/v/release/ancients-collective/sesha?sort=semver)](https://github.com/ancients-collective/sesha/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ancients-collective/sesha)](https://goreportcard.com/report/github.com/ancients-collective/sesha)
 [![GoDoc](https://pkg.go.dev/badge/github.com/ancients-collective/sesha)](https://pkg.go.dev/github.com/ancients-collective/sesha)
 

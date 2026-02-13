@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Run tests
+        run: make test
+
+      - name: Build binary
+        run: make build
+
+      - name: Extract changelog entry
+        id: changelog
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          # Extract the section for this version from CHANGELOG.md
+          BODY=$(awk "/^## \[${TAG}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
+          # Write to file for gh release
+          echo "$BODY" > release-notes.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file release-notes.md \
+            ./sesha

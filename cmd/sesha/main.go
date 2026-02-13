@@ -21,8 +21,9 @@ import (
 	"github.com/ancients-collective/sesha/internal/types"
 )
 
-// Version information set at build time.
-var version = "1.0.2"
+// version is set at build time via -ldflags. The default is a dev fallback
+// for plain `go install` or `go run` usage.
+var version = "1.0.3"
 
 // Config holds all parsed CLI flag values.
 type Config struct {

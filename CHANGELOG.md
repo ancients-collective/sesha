@@ -1,0 +1,69 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.3] — 2026-02-13
+
+### Added
+- `VERSION` file as single source of truth for version strings
+- `Makefile` with `build`, `test`, `lint`, `release`, `install`, and `update-golden` targets
+- `CHANGELOG.md` (this file), back-filled for all releases
+- GitHub Actions CI workflow (test, vet, gofmt on push/PR)
+- GitHub Actions release workflow (auto-creates GitHub Releases from tags)
+- `-ldflags` version injection at build time
+
+### Changed
+- Badge URL changed from `github/v/tag` to `github/v/release` for accurate release tracking
+- Test fixtures decoupled from real version string (use `testVersion` constant)
+- Golden files no longer need updating on version bumps
+
+## [1.0.2] — 2026-02-13
+
+### Changed
+- Refactored `run()` from cyclomatic complexity 73 → 11 (extracted 10 helpers)
+- Refactored `icon()` from dual switch (complexity 20) to map lookups
+- Decomposed `detectVMWith()` (17) into 5 focused helpers
+- Decomposed `VerifyChecksDirectory()` (16) into 3 focused helpers
+- Applied `gofmt -s` project-wide
+- Zero functions now exceed gocyclo threshold of 15
+
+## [1.0.1] — 2026-02-13
+
+### Fixed
+- Path traversal gap in `readProcFileLimited` (filepath.Clean before prefix check)
+- Unchecked type assertion in `GetFileOwnerIDs` (prevent panic)
+- Capture `WalkDir` errors in `VerifyChecksDirectory`
+- Use `defer conn.Close()` in `portListening`
+
+### Added
+- 1 MB size limit on YAML check files (prevent OOM)
+- Error on non-string args in `command_output_contains`
+- Output file path validation (reject writes to /etc, /proc, /sys, etc.)
+- Bounded reads in `detect_linux.go`
+- Reject empty args and null bytes in allowlist validator
+
+### Changed
+- Refined `IsDumbTerm`: only `TERM=dumb` is treated as dumb, not unset
+- Standardized test packages to `engine_test`
+- Derived `validWhenTokens` from shared constants
+- Used `filepath.Join` in test helper
+- Documented `Lstat`/`Stat` difference and bit-mask logic
+
+## [1.0.0] — 2026-02-13
+
+### Added
+- Initial public release
+- 13 built-in check functions
+- YAML-driven declarative security checks
+- Text, JSON, and JSONL output formats
+- Profile-based filtering (server, workstation, container)
+- Severity and tag-based filtering
+- `--explain` mode with impact, break-risk, and remediation
+- Risk-accepted allowlists
+- Fuzzy `--id` matching with suggestions
+- Checks directory integrity verification
+- Linux and macOS system context detection
+- GitHub Pages documentation site
