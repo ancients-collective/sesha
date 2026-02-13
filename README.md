@@ -5,6 +5,7 @@
 [![Latest Release](https://img.shields.io/github/v/release/ancients-collective/sesha?sort=semver)](https://github.com/ancients-collective/sesha/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ancients-collective/sesha)](https://goreportcard.com/report/github.com/ancients-collective/sesha)
 [![GoDoc](https://pkg.go.dev/badge/github.com/ancients-collective/sesha)](https://pkg.go.dev/github.com/ancients-collective/sesha)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/ancients-collective/sesha/badge)](https://scorecard.dev/viewer/?uri=github.com/ancients-collective/sesha)
 
 **Sesha** - Catch drift, not feelings.
 
