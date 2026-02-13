@@ -69,7 +69,7 @@ func TestJSONLFormatter_HeaderLine(t *testing.T) {
 	require.NoError(t, json.Unmarshal(scanner.Bytes(), &header))
 
 	assert.Equal(t, "header", header["type"])
-	assert.Equal(t, "0.9.0", header["version"])
+	assert.Equal(t, "1.0.0", header["version"])
 	assert.NotNil(t, header["system"])
 	assert.NotNil(t, header["summary"])
 }

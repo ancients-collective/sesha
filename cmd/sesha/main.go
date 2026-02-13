@@ -21,7 +21,7 @@ import (
 )
 
 // Version information set at build time.
-var version = "0.9.0"
+var version = "1.0.0"
 
 // Config holds all parsed CLI flag values.
 type Config struct {
