@@ -141,7 +141,7 @@ func TestLoadTest_FileNotFound(t *testing.T) {
 	_, err := loader.LoadTest("/nonexistent/path.yaml")
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to read")
+	assert.Contains(t, err.Error(), "failed to stat")
 }
 
 func TestLoadTest_InvalidYAMLSyntax(t *testing.T) {

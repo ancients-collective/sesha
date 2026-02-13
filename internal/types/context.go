@@ -1,5 +1,28 @@
 package types
 
+// Valid environment types.
+const (
+	EnvContainer  = "container"
+	EnvVM         = "vm"
+	EnvBareMetal  = "bare-metal"
+)
+
+// Valid intent profiles.
+const (
+	ProfileServer      = "server"
+	ProfileWorkstation = "workstation"
+)
+
+// ValidWhenTokens is the set of tokens accepted in acceptable.when blocks.
+// Derived from the environment types and profile constants above.
+var ValidWhenTokens = map[string]bool{
+	EnvContainer:       true,
+	EnvVM:              true,
+	EnvBareMetal:       true,
+	ProfileServer:      true,
+	ProfileWorkstation: true,
+}
+
 // SystemContext holds information about the system where checks are running.
 // It is populated by the context detection package and used to filter checks.
 type SystemContext struct {

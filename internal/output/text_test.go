@@ -292,7 +292,7 @@ func TestIsDumbTerm(t *testing.T) {
 	assert.False(t, IsDumbTerm())
 
 	os.Setenv("TERM", "")
-	assert.True(t, IsDumbTerm())
+	assert.False(t, IsDumbTerm())
 }
 
 func TestExtractFindings(t *testing.T) {

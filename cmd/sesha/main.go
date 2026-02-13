@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -21,7 +22,7 @@ import (
 )
 
 // Version information set at build time.
-var version = "1.0.0"
+var version = "1.0.1"
 
 // Config holds all parsed CLI flag values.
 type Config struct {
@@ -433,6 +434,10 @@ func run(cfg *Config) int {
 
 	w := os.Stdout
 	if cfg.OutputFile != "" {
+		if err := validateOutputPath(cfg.OutputFile); err != nil {
+			fmt.Fprintf(os.Stderr, "  ✗ Unsafe output path: %v\n", err)
+			return 1
+		}
 		f, err := os.Create(cfg.OutputFile)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "  ✗ Failed to create output file: %v\n", err)
@@ -619,4 +624,21 @@ func shouldDisplay(r types.TestResult, show string, sevFilter map[string]bool) b
 	default:
 		return true
 	}
+}
+
+// unsafeOutputPrefixes are path prefixes where writing output files is rejected.
+// Prevents accidental overwrite of system files when running as root.
+var unsafeOutputPrefixes = []string{"/etc/", "/proc/", "/sys/", "/dev/", "/boot/", "/sbin/", "/bin/", "/usr/"}
+
+// validateOutputPath checks that the output file path is safe to write to.
+func validateOutputPath(path string) error {
+	cleaned := filepath.Clean(path)
+	if filepath.IsAbs(cleaned) {
+		for _, prefix := range unsafeOutputPrefixes {
+			if strings.HasPrefix(cleaned, prefix) {
+				return fmt.Errorf("refusing to write to system path %q", cleaned)
+			}
+		}
+	}
+	return nil
 }

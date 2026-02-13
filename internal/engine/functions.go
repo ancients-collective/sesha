@@ -75,6 +75,9 @@ func (r *FunctionRegistry) Call(name string, args map[string]interface{}) (bool,
 
 // fileExists checks if a file exists at the given path.
 // Uses validatePath + os.Lstat to prevent path traversal.
+// Note: uses Lstat (does not follow symlinks) — a dangling symlink reports as "exists".
+// This differs from filePermissions which uses Stat (follows symlinks). This is intentional:
+// existence should detect the link itself, while permissions should check the target.
 func (r *FunctionRegistry) fileExists(args map[string]interface{}) (bool, string, error) {
 	path, err := getStringArg(args, "path")
 	if err != nil {
@@ -198,7 +201,7 @@ func (r *FunctionRegistry) portListening(args map[string]interface{}) (bool, str
 	if err != nil {
 		return false, fmt.Sprintf("port %d is not listening", port), nil
 	}
-	conn.Close()
+	defer conn.Close()
 
 	return true, fmt.Sprintf("port %d is listening", port), nil
 }

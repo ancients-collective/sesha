@@ -60,9 +60,10 @@ var (
 )
 
 // IsDumbTerm returns true when the terminal doesn't support Unicode.
+// Only treats TERM=dumb as dumb; unset TERM defaults to Unicode-capable.
 func IsDumbTerm() bool {
 	t := os.Getenv("TERM")
-	return t == "dumb" || t == ""
+	return t == "dumb"
 }
 
 // wrapWidth returns the effective line width: min(terminal, maxLine).

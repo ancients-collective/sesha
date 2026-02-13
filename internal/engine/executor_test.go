@@ -2,6 +2,7 @@ package engine
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ancients-collective/sesha/internal/types"
@@ -313,7 +314,7 @@ func TestExecutor_DistroConditionalStep(t *testing.T) {
 // createTestFile is a helper to create a file with specific permissions in a temp dir.
 func createTestFile(t *testing.T, dir, name, content string, perm os.FileMode) string {
 	t.Helper()
-	path := dir + "/" + name
+	path := filepath.Join(dir, name)
 	require.NoError(t, os.WriteFile(path, []byte(content), perm))
 	require.NoError(t, os.Chmod(path, perm))
 	return path

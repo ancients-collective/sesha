@@ -75,7 +75,7 @@ func TestTestResult_Fields(t *testing.T) {
 
 func TestScanReport_Fields(t *testing.T) {
 	report := ScanReport{
-		Version: "1.0.0",
+		Version: "1.0.1",
 		System: ScanSystem{
 			Hostname: "test-host",
 			OS:       "linux",
@@ -89,8 +89,8 @@ func TestScanReport_Fields(t *testing.T) {
 		},
 	}
 
-	if report.Version != "1.0.0" {
-		t.Errorf("Version = %q, want %q", report.Version, "1.0.0")
+	if report.Version != "1.0.1" {
+		t.Errorf("Version = %q, want %q", report.Version, "1.0.1")
 	}
 	if report.System.Hostname != "test-host" {
 		t.Errorf("Hostname = %q, want %q", report.System.Hostname, "test-host")

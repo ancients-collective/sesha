@@ -1,6 +1,6 @@
 # Sesha
 
-**Sesha** - catch drift, not feelings.
+**Sesha** - Catch drift, not feelings.
 
 A secure, simple and extensible YAML-driven security auditing tool that runs declarative checks against
 your Linux hosts and reports findings in human-readable or machine-parseable

@@ -89,8 +89,12 @@ func (r *FunctionRegistry) fileOwner(args map[string]interface{}) (bool, string,
 
 // GetFileOwnerIDs extracts the UID and GID from a FileInfo.
 // Exported for use in tests.
+// Uses a safe type assertion to avoid panics on non-Unix Sys() returns.
 func GetFileOwnerIDs(info os.FileInfo) (uid, gid uint32) {
-	stat := info.Sys().(*syscall.Stat_t)
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return 0, 0
+	}
 	return stat.Uid, stat.Gid
 }
 
@@ -222,10 +226,12 @@ func (r *FunctionRegistry) commandOutputContains(args map[string]interface{}) (b
 	var cmdArgs []string
 	if rawArgs, ok := args["args"]; ok {
 		if argList, ok := rawArgs.([]interface{}); ok {
-			for _, a := range argList {
-				if s, ok := a.(string); ok {
-					cmdArgs = append(cmdArgs, s)
+			for i, a := range argList {
+				s, ok := a.(string)
+				if !ok {
+					return false, "", fmt.Errorf("args[%d] must be a string, got %T", i, a)
 				}
+				cmdArgs = append(cmdArgs, s)
 			}
 		}
 	}
@@ -372,6 +378,8 @@ func (r *FunctionRegistry) filePermissionsMax(args map[string]interface{}) (bool
 	actual := uint32(info.Mode().Perm())
 	max := uint32(maxPerm)
 
+	// Check if any permission bits are set beyond the maximum allowed.
+	// ^max inverts the max bitmask; ANDing with actual reveals excess bits.
 	if actual & ^max != 0 {
 		return false, fmt.Sprintf("too permissive: %s has %04o, maximum allowed is %04o",
 			cleaned, actual, max), nil

@@ -111,6 +111,7 @@ func (e *AllowlistExecutor) Execute(cmd string, args []string) ([]byte, error) {
 }
 
 // validateArgs checks that all arguments comply with the CommandSpec constraints.
+// Rejects unrecognized flags and validates positional argument content.
 func validateArgs(spec CommandSpec, args []string) error {
 	positionalCount := 0
 
@@ -122,6 +123,13 @@ func validateArgs(spec CommandSpec, args []string) error {
 			}
 		} else {
 			positionalCount++
+			// Reject empty args and null bytes which could confuse command parsing.
+			if arg == "" {
+				return fmt.Errorf("empty positional argument not allowed")
+			}
+			if strings.ContainsRune(arg, 0) {
+				return fmt.Errorf("null byte in argument not allowed")
+			}
 		}
 	}
 

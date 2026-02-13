@@ -47,8 +47,20 @@ func New(knownFunctions []string) *Loader {
 	}
 }
 
+// maxCheckFileBytes is the maximum size of a YAML check file (1 MB).
+// Prevents OOM from accidentally or maliciously large files.
+const maxCheckFileBytes = 1 * 1024 * 1024
+
 // LoadTest reads a YAML file and returns a validated TestDefinition.
 func (l *Loader) LoadTest(path string) (types.TestDefinition, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return types.TestDefinition{}, fmt.Errorf("failed to stat %q: %w", path, err)
+	}
+	if info.Size() > maxCheckFileBytes {
+		return types.TestDefinition{}, fmt.Errorf("check file %q too large: %d bytes (max: %d)", path, info.Size(), maxCheckFileBytes)
+	}
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return types.TestDefinition{}, fmt.Errorf("failed to read %q: %w", path, err)
@@ -192,14 +204,10 @@ func (l *Loader) validateTest(test types.TestDefinition) error {
 		}
 	}
 
-	// Validate acceptable.when tokens
-	validWhenTokens := map[string]bool{
-		"container": true, "vm": true, "bare-metal": true,
-		"server": true, "workstation": true,
-	}
+	// Validate acceptable.when tokens against the canonical set from types package.
 	if test.Acceptable != nil {
 		for _, when := range test.Acceptable.When {
-			if !validWhenTokens[when] {
+			if !types.ValidWhenTokens[when] {
 				return fmt.Errorf("acceptable.when: invalid token %q (must be an environment type or profile name)", when)
 			}
 		}

@@ -1,10 +1,11 @@
-package engine
+package engine_test
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/ancients-collective/sesha/internal/engine"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,7 +15,7 @@ func TestFileExists_ExistingFile(t *testing.T) {
 	path := filepath.Join(dir, "testfile")
 	require.NoError(t, os.WriteFile(path, []byte("content"), 0o644))
 
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	pass, detail, err := registry.Call("file_exists", map[string]interface{}{"path": path})
 
 	require.NoError(t, err)
@@ -23,7 +24,7 @@ func TestFileExists_ExistingFile(t *testing.T) {
 }
 
 func TestFileExists_NonexistentFile(t *testing.T) {
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	pass, detail, err := registry.Call("file_exists", map[string]interface{}{"path": "/nonexistent/file"})
 
 	require.NoError(t, err)
@@ -32,7 +33,7 @@ func TestFileExists_NonexistentFile(t *testing.T) {
 }
 
 func TestFileExists_MissingPathArg(t *testing.T) {
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	_, _, err := registry.Call("file_exists", map[string]interface{}{})
 
 	require.Error(t, err)
@@ -45,7 +46,7 @@ func TestFilePermissions_Correct(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, []byte("content"), 0o640))
 	require.NoError(t, os.Chmod(path, 0o640))
 
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	pass, _, err := registry.Call("file_permissions", map[string]interface{}{
 		"path":        path,
 		"permissions": "0640",
@@ -61,7 +62,7 @@ func TestFilePermissions_Wrong(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, []byte("content"), 0o644))
 	require.NoError(t, os.Chmod(path, 0o644))
 
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	pass, detail, err := registry.Call("file_permissions", map[string]interface{}{
 		"path":        path,
 		"permissions": "0600",
@@ -77,7 +78,7 @@ func TestFilePermissions_InvalidFormat(t *testing.T) {
 	path := filepath.Join(dir, "testfile")
 	require.NoError(t, os.WriteFile(path, []byte("content"), 0o644))
 
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	_, _, err := registry.Call("file_permissions", map[string]interface{}{
 		"path":        path,
 		"permissions": "invalid",
@@ -88,7 +89,7 @@ func TestFilePermissions_InvalidFormat(t *testing.T) {
 }
 
 func TestFilePermissions_MissingArgs(t *testing.T) {
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 
 	_, _, err := registry.Call("file_permissions", map[string]interface{}{
 		"permissions": "0640",
@@ -108,7 +109,7 @@ func TestFileContains_PatternFound(t *testing.T) {
 	path := filepath.Join(dir, "config")
 	require.NoError(t, os.WriteFile(path, []byte("PermitRootLogin no\nPort 22\n"), 0o644))
 
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	pass, _, err := registry.Call("file_contains", map[string]interface{}{
 		"path":    path,
 		"pattern": "PermitRootLogin no",
@@ -123,7 +124,7 @@ func TestFileContains_PatternNotFound(t *testing.T) {
 	path := filepath.Join(dir, "config")
 	require.NoError(t, os.WriteFile(path, []byte("PermitRootLogin yes\n"), 0o644))
 
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	pass, detail, err := registry.Call("file_contains", map[string]interface{}{
 		"path":    path,
 		"pattern": "PermitRootLogin no",
@@ -139,7 +140,7 @@ func TestFileContains_RegexPattern(t *testing.T) {
 	path := filepath.Join(dir, "config")
 	require.NoError(t, os.WriteFile(path, []byte("PermitRootLogin no\n"), 0o644))
 
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	pass, _, err := registry.Call("file_contains", map[string]interface{}{
 		"path":    path,
 		"pattern": `^PermitRootLogin\s+no`,
@@ -154,7 +155,7 @@ func TestFileContains_InvalidRegex(t *testing.T) {
 	path := filepath.Join(dir, "config")
 	require.NoError(t, os.WriteFile(path, []byte("content\n"), 0o644))
 
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	_, _, err := registry.Call("file_contains", map[string]interface{}{
 		"path":    path,
 		"pattern": "[invalid regex",
@@ -165,7 +166,7 @@ func TestFileContains_InvalidRegex(t *testing.T) {
 }
 
 func TestFileContains_FileNotFound(t *testing.T) {
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	pass, _, err := registry.Call("file_contains", map[string]interface{}{
 		"path":    "/nonexistent/file",
 		"pattern": "test",
@@ -176,7 +177,7 @@ func TestFileContains_FileNotFound(t *testing.T) {
 }
 
 func TestPortListening_InvalidPort(t *testing.T) {
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	_, _, err := registry.Call("port_listening", map[string]interface{}{
 		"port": 99999,
 	})
@@ -186,7 +187,7 @@ func TestPortListening_InvalidPort(t *testing.T) {
 }
 
 func TestPortListening_MissingArg(t *testing.T) {
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	_, _, err := registry.Call("port_listening", map[string]interface{}{})
 
 	require.Error(t, err)
@@ -194,7 +195,7 @@ func TestPortListening_MissingArg(t *testing.T) {
 }
 
 func TestPortListening_NotListening(t *testing.T) {
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	pass, _, err := registry.Call("port_listening", map[string]interface{}{
 		"port": 39999,
 	})
@@ -204,7 +205,7 @@ func TestPortListening_NotListening(t *testing.T) {
 }
 
 func TestServiceRunning_MissingArg(t *testing.T) {
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	_, _, err := registry.Call("service_running", map[string]interface{}{})
 
 	require.Error(t, err)
@@ -212,7 +213,7 @@ func TestServiceRunning_MissingArg(t *testing.T) {
 }
 
 func TestFunctionNames(t *testing.T) {
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	names := registry.FunctionNames()
 
 	assert.Contains(t, names, "file_exists")
@@ -232,7 +233,7 @@ func TestFunctionNames(t *testing.T) {
 }
 
 func TestFunctionNames_Sorted(t *testing.T) {
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	names := registry.FunctionNames()
 
 	for i := 1; i < len(names); i++ {
@@ -241,7 +242,7 @@ func TestFunctionNames_Sorted(t *testing.T) {
 }
 
 func TestCall_UnknownFunction(t *testing.T) {
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	_, _, err := registry.Call("nonexistent_function", map[string]interface{}{})
 
 	require.Error(t, err)
@@ -253,7 +254,7 @@ func TestFileExists_Symlink(t *testing.T) {
 	linkPath := filepath.Join(dir, "symlink")
 	require.NoError(t, os.Symlink("/nonexistent/target", linkPath))
 
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	pass, _, err := registry.Call("file_exists", map[string]interface{}{"path": linkPath})
 
 	require.NoError(t, err)
@@ -269,7 +270,7 @@ func TestFilePermissions_Symlink(t *testing.T) {
 	linkPath := filepath.Join(dir, "symlink")
 	require.NoError(t, os.Symlink(target, linkPath))
 
-	registry := NewFunctionRegistry(nil)
+	registry := engine.NewFunctionRegistry(nil)
 	pass, detail, err := registry.Call("file_permissions", map[string]interface{}{
 		"path":        linkPath,
 		"permissions": "0640",

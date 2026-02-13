@@ -66,8 +66,11 @@ func (d *LinuxDetector) DetectEnvironment() (types.EnvInfo, error) {
 		env.Hostname = h
 	}
 
-	// Collect machine-id (best-effort)
+	// Collect machine-id (best-effort, bounded read)
 	if data, err := os.ReadFile("/etc/machine-id"); err == nil {
+		if len(data) > 4096 {
+			data = data[:4096]
+		}
 		env.MachineID = strings.TrimSpace(string(data))
 	}
 
@@ -113,6 +116,9 @@ func detectContainerWith(dockerenvPath, containerenvPath, cgroupPath string) (bo
 	}
 
 	if data, err := os.ReadFile(cgroupPath); err == nil {
+		if len(data) > 1024*1024 {
+			data = data[:1024*1024]
+		}
 		if bytes.Contains(data, []byte("docker")) {
 			return true, "docker"
 		}
@@ -130,12 +136,18 @@ func detectContainerWith(dockerenvPath, containerenvPath, cgroupPath string) (bo
 // detectContainerID extracts the container ID from cgroup or cpuset information.
 func detectContainerID() string {
 	if data, err := os.ReadFile("/proc/self/cgroup"); err == nil {
+		if len(data) > 1024*1024 {
+			data = data[:1024*1024]
+		}
 		if id := containerIDPattern.FindString(string(data)); id != "" {
 			return id
 		}
 	}
 
 	if data, err := os.ReadFile("/proc/1/cpuset"); err == nil {
+		if len(data) > 1024*1024 {
+			data = data[:1024*1024]
+		}
 		if id := containerIDPattern.FindString(string(data)); id != "" {
 			return id
 		}

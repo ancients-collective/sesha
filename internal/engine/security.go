@@ -100,10 +100,13 @@ func readFileLimited(path string) ([]byte, error) {
 
 // readProcFileLimited reads a file under /proc with bounded read.
 // Skips symlink checks because kernel symlinks are expected.
+// Cleans the path before the prefix check to prevent traversal (e.g., "/proc/../etc/shadow").
 func readProcFileLimited(path string) ([]byte, error) {
-	if !strings.HasPrefix(path, "/proc/") {
-		return nil, fmt.Errorf("readProcFileLimited: path must be under /proc/, got %q", path)
+	cleaned := filepath.Clean(path)
+	if !strings.HasPrefix(cleaned, "/proc/") {
+		return nil, fmt.Errorf("readProcFileLimited: path must be under /proc/, got %q (cleaned: %q)", path, cleaned)
 	}
+	path = cleaned
 
 	f, err := os.Open(path)
 	if err != nil {
@@ -233,8 +236,9 @@ func VerifyChecksDirectory(dir string) []string {
 		return warnings
 	}
 
-	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+	walkErr := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
+			warnings = append(warnings, fmt.Sprintf("error accessing %q during walk: %v", path, err))
 			return nil
 		}
 
@@ -263,6 +267,9 @@ func VerifyChecksDirectory(dir string) []string {
 
 		return nil
 	})
+	if walkErr != nil {
+		warnings = append(warnings, fmt.Sprintf("walk error in checks directory: %v", walkErr))
+	}
 
 	return warnings
 }
