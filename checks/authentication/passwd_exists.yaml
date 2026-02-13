@@ -1,0 +1,33 @@
+id: passwd_exists
+name: /etc/passwd exists
+author: sesha-project
+version: "1.0"
+description: Verify that the system password file exists.
+severity: critical
+category: authentication
+supported_os:
+  - linux
+tags:
+  - cis-benchmark
+  - hardening
+  - identity
+
+steps:
+  - function: file_exists
+    args:
+      path: /etc/passwd
+
+impact: Without /etc/passwd, user authentication and identity resolution break entirely. Every program that calls getpwnam(), getpwuid(), or uses NSS for user lookups will fail. Login, su, sudo, cron, and most daemons depend on this file.
+explain: |
+  /etc/passwd is the primary user account database on Unix-like systems. Each line maps a username to a UID, GID, home directory, and login shell. Even though modern systems store passwords in /etc/shadow, the passwd file remains essential for identity resolution. Its absence indicates either catastrophic filesystem corruption or deliberate tampering.
+likelihood: unlikely
+break_risk: No risk — this check only verifies the file exists and does not modify anything.
+remediation: |
+  Restore /etc/passwd from backup or reinstall the base system packages:
+    Debian/Ubuntu: apt-get install --reinstall base-passwd
+    RHEL/CentOS:   yum reinstall setup
+    Arch:          pacman -S filesystem
+  If no backup exists, boot from recovery media and recreate the file.
+references:
+  - https://man7.org/linux/man-pages/man5/passwd.5.html
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux

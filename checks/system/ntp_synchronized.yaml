@@ -1,0 +1,50 @@
+id: ntp_synchronized
+name: NTP time synchronization active
+author: sesha-project
+version: "1.0"
+description: Verify that time synchronization is configured using timedatectl.
+severity: low
+category: system
+supported_os:
+  - linux
+tags:
+  - cis-benchmark
+  - hardening
+  - time-sync
+  - compliance
+
+steps:
+  - function: command_output_contains
+    args:
+      command: timedatectl
+      args:
+        - status
+      pattern: "NTP service: active|System clock synchronized: yes|Network time on: yes"
+
+context_notes:
+  container: Time synchronization is inherited from the host.
+
+acceptable:
+  when:
+    - container
+  reason: Containers inherit time from the host kernel.
+
+impact: |
+  Clock skew breaks TLS certificate validation (certificates appear expired or not-yet-valid), Kerberos authentication (which has a 5-minute tolerance by default), and makes log correlation across systems unreliable. In forensic investigations, inaccurate timestamps render evidence questionable.
+explain: |
+  Accurate system time is fundamental to security operations. TLS/SSL, Kerberos, TOTP (2FA), log correlation, and database replication all depend on synchronized clocks. NTP (or systemd-timesyncd) ensures the system clock stays within milliseconds of authoritative time sources. The timedatectl command reports synchronization status on systemd-based systems.
+likelihood: possible
+break_risk: |
+  Enabling NTP synchronization is safe and universally recommended. The only risk is if a system intentionally uses a different time source or must remain isolated from network time servers — extremely rare outside of air-gapped environments.
+remediation: |
+  Enable NTP synchronization:
+    timedatectl set-ntp true
+  Verify:
+    timedatectl status
+  Expected output should include "NTP service: active" or equivalent.
+  If using chrony or ntpd instead of systemd-timesyncd:
+    systemctl enable chronyd && systemctl start chronyd
+references:
+  - https://man7.org/linux/man-pages/man1/timedatectl.1.html
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux
+  - https://chrony.tuxfamily.org/documentation.html

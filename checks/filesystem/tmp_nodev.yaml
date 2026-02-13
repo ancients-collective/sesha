@@ -1,0 +1,47 @@
+id: tmp_nodev
+name: /tmp mounted with nodev
+author: sesha-project
+version: "1.0"
+description: Verify that /tmp is mounted with the nodev option to prevent device file creation.
+severity: medium
+category: filesystem
+supported_os:
+  - linux
+tags:
+  - cis-benchmark
+  - hardening
+  - mount-options
+  - filesystem
+
+steps:
+  - function: mount_has_option
+    args:
+      mount_point: /tmp
+      option: nodev
+
+context_notes:
+  container: Mount options are typically controlled by the container runtime, not the container itself.
+
+acceptable:
+  when:
+    - container
+  reason: Container mount options are set by the runtime, not inside the container.
+
+impact: |
+  Without nodev, an attacker who can write to /tmp can create device special files (e.g., a fake /dev/sda) to bypass access controls and potentially read raw disk contents or interact with hardware directly.
+explain: |
+  The nodev mount option prevents interpretation of block and character device special files on the mounted filesystem. Since /tmp is world-writable, it is a common target for creating malicious device nodes. The nodev option eliminates this class of attack entirely with no functional impact on normal /tmp usage.
+likelihood: unlikely
+break_risk: |
+  Adding nodev to /tmp has no impact on normal file operations. It only prevents creation of device special files, which legitimate applications never do in /tmp. This is a safe, universally recommended hardening step.
+remediation: |
+  Add nodev to /tmp mount options in /etc/fstab:
+    /tmp  ext4  defaults,nodev,nosuid,noexec  0  0
+  Remount without rebooting:
+    mount -o remount,nodev /tmp
+  Verify:
+    mount | grep /tmp
+  Expected output should include "nodev" in the options.
+references:
+  - https://man7.org/linux/man-pages/man8/mount.8.html
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux

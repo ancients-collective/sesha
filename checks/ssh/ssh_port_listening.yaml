@@ -1,0 +1,52 @@
+id: ssh_port_listening
+name: SSH port 22 is listening
+author: sesha-project
+version: "1.0"
+description: Verify that the SSH daemon is listening on TCP port 22.
+severity: info
+category: ssh
+supported_os:
+  - linux
+profiles:
+  - server
+tags:
+  - hardening
+  - ssh
+  - remote-access
+  - server
+
+steps:
+  - function: port_listening
+    args:
+      port: 22
+
+context_notes:
+  container: SSH is typically not needed inside containers.
+  workstation: SSH may be intentionally disabled on workstations.
+
+severity_overrides:
+  container: info
+
+acceptable:
+  when:
+    - container
+  reason: Containers typically use exec/attach instead of SSH.
+
+impact: |
+  If SSH is not listening on a server, remote administration becomes unavailable. This is informational — on servers it may indicate a misconfigured or crashed sshd, but on workstations and containers it is expected.
+explain: |
+  SSH on port 22 is the standard method for remote server administration. This check verifies the port is open and accepting connections. A server without SSH listening may be inaccessible remotely, requiring console or out-of-band access for management. Custom SSH ports are not covered by this check.
+likelihood: unlikely
+break_risk: No risk — this check only verifies whether port 22 is listening and does not modify anything.
+remediation: |
+  Start the SSH daemon:
+    systemctl start sshd
+  Enable at boot:
+    systemctl enable sshd
+  If using a custom port, check sshd_config:
+    grep -i ^Port /etc/ssh/sshd_config
+  Verify:
+    ss -tlnp | grep :22
+references:
+  - https://man7.org/linux/man-pages/man8/sshd.8.html
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux

@@ -1,0 +1,38 @@
+id: crontab_permissions
+name: /etc/crontab permissions
+author: sesha-project
+version: "1.0"
+description: Verify that /etc/crontab has exact permissions of 0600.
+severity: medium
+category: file-permissions
+supported_os:
+  - linux
+tags:
+  - cis-benchmark
+  - hardening
+  - file-permissions
+  - scheduling
+
+steps:
+  - function: file_permissions
+    args:
+      path: /etc/crontab
+      permissions: "0600"
+
+impact: |
+  A world-readable crontab exposes scheduled tasks, file paths, and credentials embedded in commands. A world-writable crontab allows any user to schedule jobs that run as root, leading to immediate privilege escalation.
+explain: |
+  /etc/crontab defines system-wide scheduled tasks that typically run as root. If other users can read it, they gain insight into system operations. If they can write to it, they can inject arbitrary commands that execute with root privileges on the next cron cycle.
+likelihood: possible
+break_risk: |
+  Setting permissions to 0600 restricts access to root only. This will not break cron itself since the cron daemon runs as root. However, non-root users will no longer be able to read the system crontab — this is the intended behavior.
+remediation: |
+  Set correct permissions:
+    chmod 0600 /etc/crontab
+    chown root:root /etc/crontab
+  Verify:
+    ls -l /etc/crontab
+  Expected: -rw------- 1 root root ...
+references:
+  - https://man7.org/linux/man-pages/man5/crontab.5.html
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux

@@ -1,0 +1,46 @@
+id: sshd_running
+name: SSH daemon is running
+author: sesha-project
+version: "1.0"
+description: Verify that the sshd service is active.
+severity: low
+category: ssh
+supported_os:
+  - linux
+profiles:
+  - server
+tags:
+  - hardening
+  - ssh
+  - remote-access
+  - server
+
+steps:
+  - function: service_running
+    args:
+      name: sshd
+
+context_notes:
+  container: SSH is typically not needed inside containers.
+
+acceptable:
+  when:
+    - container
+  reason: Containers use exec/attach for shell access, not SSH.
+
+impact: |
+  If the SSH daemon is not running on a server, remote administration is unavailable. Operators must use console or out-of-band access to manage the system, which increases response time during incidents.
+explain: |
+  The sshd service provides encrypted remote shell access. On servers, it should be running and enabled at boot to allow administration. This check complements ssh_port_listening by verifying the service state via systemd rather than checking the network port.
+likelihood: unlikely
+break_risk: No risk — this check only verifies service state and does not modify anything.
+remediation: |
+  Start the SSH daemon:
+    systemctl start sshd
+  Enable at boot:
+    systemctl enable sshd
+  Verify:
+    systemctl status sshd
+references:
+  - https://man7.org/linux/man-pages/man8/sshd.8.html
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux

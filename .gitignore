@@ -1,0 +1,33 @@
+# Compiled binary
+/sesha
+
+# Internal planning docs (roadmap, enterprise features, etc.)
+.planning/
+
+# Claude / AI agent metadata
+.claude/
+.claude_*
+CLAUDE.md
+CLAUDE.local.md
+
+# Get-shit-done metadata
+.gsd/
+.gsd*
+
+# Personal data / credentials
+*.pem
+*.key
+*.env
+.env
+.env.*
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

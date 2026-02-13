@@ -1,0 +1,40 @@
+id: journald_enabled
+name: Journald logging is enabled
+author: sesha-project
+version: "1.0"
+description: Verify that systemd-journald is enabled to start at boot.
+severity: medium
+category: logging
+supported_os:
+  - linux
+tags:
+  - cis-benchmark
+  - hardening
+  - logging
+  - compliance
+
+steps:
+  - function: service_enabled
+    args:
+      name: systemd-journald
+
+impact: |
+  Without persistent logging, security events are lost and incident investigation becomes impossible. An attacker who compromises a system with disabled logging can operate undetected with no forensic trail. Compliance frameworks (PCI-DSS, SOC 2, HIPAA) require persistent audit logging.
+explain: |
+  systemd-journald is the default system logging service on modern Linux distributions. It captures kernel messages, service output, authentication events, and structured metadata. When disabled, security-relevant events (failed logins, privilege escalation, service crashes) are silently discarded. The journal can forward to syslog for centralized logging.
+likelihood: possible
+break_risk: |
+  Enabling journald is universally safe. It is the default logging service on all systemd-based distributions. Enabling it will begin collecting logs, which increases disk usage — configure journal size limits in /etc/systemd/journald.conf if needed.
+remediation: |
+  Enable journald:
+    systemctl enable systemd-journald
+    systemctl start systemd-journald
+  Configure persistent storage (optional):
+    mkdir -p /var/log/journal
+    systemd-tmpfiles --create --prefix /var/log/journal
+  Verify:
+    systemctl is-enabled systemd-journald
+    journalctl --no-pager -n 5
+references:
+  - https://man7.org/linux/man-pages/man8/systemd-journald.service.8.html
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux

@@ -1,0 +1,52 @@
+id: ip_forward_disabled
+name: IP forwarding is disabled
+author: sesha-project
+version: "1.0"
+description: Verify that IPv4 forwarding is disabled on non-router systems.
+severity: medium
+category: network
+supported_os:
+  - linux
+profiles:
+  - server
+  - workstation
+tags:
+  - cis-benchmark
+  - hardening
+  - network
+  - routing
+
+steps:
+  - function: sysctl_value
+    args:
+      key: net.ipv4.ip_forward
+      expected: "0"
+
+context_notes:
+  container: IP forwarding is controlled by the host, not the container.
+
+acceptable:
+  when:
+    - container
+  reason: Container networking is managed by the host kernel.
+
+impact: |
+  An attacker on a compromised host with IP forwarding enabled can route traffic between network segments, bypassing firewall rules and network segmentation. This can turn a single compromised host into a pivot point for lateral movement across otherwise isolated networks.
+explain: |
+  IP forwarding allows a Linux system to act as a router, forwarding packets between network interfaces. Unless the system is intentionally configured as a router, gateway, or running containers/VMs that need inter-network routing, this should be disabled. Enabling it unnecessarily violates the principle of least privilege at the network layer.
+likelihood: possible
+break_risk: |
+  Disabling IP forwarding will break routing on systems that intentionally act as routers, VPN gateways, or container/VM hosts using bridge networking (Docker, libvirt). Verify the system's role before changing. Check active containers: docker ps, and active VMs: virsh list.
+remediation: |
+  Disable IP forwarding immediately:
+    sysctl -w net.ipv4.ip_forward=0
+  Persist across reboots:
+    echo 'net.ipv4.ip_forward = 0' >> /etc/sysctl.d/99-hardening.conf
+    sysctl --system
+  Verify:
+    sysctl net.ipv4.ip_forward
+  Expected: net.ipv4.ip_forward = 0
+references:
+  - https://man7.org/linux/man-pages/man7/ip.7.html
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux
+  - https://www.kernel.org/doc/Documentation/networking/ip-sysctl.txt

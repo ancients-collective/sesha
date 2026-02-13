@@ -1,0 +1,36 @@
+id: passwd_ownership
+name: /etc/passwd owned by root
+author: sesha-project
+version: "1.0"
+description: Verify that /etc/passwd is owned by root:root.
+severity: high
+category: authentication
+supported_os:
+  - linux
+tags:
+  - cis-benchmark
+  - hardening
+  - identity
+  - file-ownership
+
+steps:
+  - function: file_owner
+    args:
+      path: /etc/passwd
+      owner: "root:root"
+
+impact: |
+  If a non-root user owns /etc/passwd, they can add accounts, change UIDs, modify login shells, or redirect home directories — any of which leads to full privilege escalation.
+explain: |
+  /etc/passwd controls the mapping between usernames and UIDs. An attacker who can modify this file can create a UID-0 account, change an existing user's shell to a backdoor, or redirect a privileged user's home directory. Root ownership ensures only the superuser can alter user identity.
+likelihood: possible
+break_risk: No risk — chown only changes ownership metadata and does not modify file contents or affect running services.
+remediation: |
+  Fix ownership:
+    chown root:root /etc/passwd
+  Verify the change:
+    ls -l /etc/passwd
+  Expected output: -rw-r--r-- 1 root root ...
+references:
+  - https://man7.org/linux/man-pages/man5/passwd.5.html
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux

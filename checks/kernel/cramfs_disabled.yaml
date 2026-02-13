@@ -1,0 +1,39 @@
+id: cramfs_disabled
+name: cramfs kernel module not loaded
+author: sesha-project
+version: "1.0"
+description: Verify that the cramfs filesystem module is not loaded.
+severity: low
+category: kernel
+supported_os:
+  - linux
+tags:
+  - cis-benchmark
+  - hardening
+  - kernel
+  - attack-surface
+
+steps:
+  - function: kernel_module_loaded
+    args:
+      name: cramfs
+      expect_loaded: false
+
+impact: |
+  Uncommon filesystem modules expand the kernel attack surface. Vulnerabilities in rarely-audited filesystem code (like CVE-2019-10639 in DCCP and similar kernel module bugs) can be exploited by mounting crafted filesystem images, leading to kernel-level code execution.
+explain: |
+  cramfs (Compressed ROM File System) is a read-only compressed filesystem designed for embedded devices and boot ROMs. It is rarely needed on modern servers or workstations. Every loaded kernel module increases the attack surface — disabling unused filesystem modules is a standard hardening practice recommended by CIS benchmarks.
+likelihood: unlikely
+break_risk: |
+  Unloading and blacklisting cramfs has no impact unless the system actively mounts cramfs volumes (extremely rare on servers). Check for active mounts before removing: mount | grep cramfs.
+remediation: |
+  Unload the module if loaded:
+    modprobe -r cramfs
+  Blacklist to prevent future loading:
+    echo 'blacklist cramfs' >> /etc/modprobe.d/blacklist.conf
+    echo 'install cramfs /bin/true' >> /etc/modprobe.d/blacklist.conf
+  Verify:
+    lsmod | grep cramfs  # should return empty
+references:
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux
+  - https://man7.org/linux/man-pages/man5/modules-load.d.5.html

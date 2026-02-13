@@ -1,0 +1,42 @@
+id: shadow_permissions
+name: /etc/shadow permissions
+author: sesha-project
+version: "1.0"
+description: Verify that /etc/shadow has restrictive permissions (0640 or stricter).
+severity: high
+category: authentication
+supported_os:
+  - linux
+tags:
+  - cis-benchmark
+  - hardening
+  - passwords
+  - file-permissions
+
+steps:
+  - function: file_permissions_max
+    args:
+      path: /etc/shadow
+      max_permissions: "0640"
+
+requirements:
+  privilege: elevated
+  note: Reading /etc/shadow metadata requires root or shadow group membership.
+
+impact: |
+  Overly permissive shadow file allows any local user to read password hashes for offline cracking. With modern GPUs, weak passwords can be cracked in minutes. Even strong passwords are at risk given enough time.
+explain: |
+  /etc/shadow stores hashed passwords separated from /etc/passwd specifically to restrict access. The expected permissions are 0640 (owner: root, group: shadow or root). If world-readable, any user can copy the hashes and run offline attacks with tools like hashcat or john.
+likelihood: likely
+break_risk: |
+  Tightening permissions to 0640 is safe. Some PAM configurations or legacy applications may require the shadow group to read this file. Changing to 0600 (root-only) may break sudo or su on distributions that use the shadow group for authentication.
+remediation: |
+  Set correct permissions:
+    chmod 0640 /etc/shadow
+    chown root:shadow /etc/shadow
+  Verify:
+    ls -l /etc/shadow
+  Expected: -rw-r----- 1 root shadow ...
+references:
+  - https://man7.org/linux/man-pages/man5/shadow.5.html
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux
