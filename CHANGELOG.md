@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.10] — 2026-02-19
+
+### Added
+- `auth_su_restricted` check: verify `/etc/pam.d/su` restricts `su` to wheel/sudo group via `pam_wheel.so`
+
+### Changed
+- Standardised release workflow with `make release-patch`, `release-minor`, `release-major` auto-increment targets
+- Added `scripts/release.sh` for repeatable, automated release process
+
 ## [1.0.9] — 2026-02-13
 
 ### Added

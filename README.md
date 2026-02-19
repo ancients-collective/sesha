@@ -2,7 +2,7 @@
 
 [![Go Version](https://img.shields.io/badge/go-1.24-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-Apache_2.0-blue)](https://github.com/ancients-collective/sesha/blob/main/LICENSE)
-[![Latest Release](https://img.shields.io/badge/release-v1.0.9-brightgreen)](https://github.com/ancients-collective/sesha/releases)
+[![Latest Release](https://img.shields.io/badge/release-v1.0.10-brightgreen)](https://github.com/ancients-collective/sesha/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ancients-collective/sesha)](https://goreportcard.com/report/github.com/ancients-collective/sesha)
 [![GoDoc](https://pkg.go.dev/badge/github.com/ancients-collective/sesha)](https://pkg.go.dev/github.com/ancients-collective/sesha)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/ancients-collective/sesha/badge)](https://scorecard.dev/viewer/?uri=github.com/ancients-collective/sesha)
