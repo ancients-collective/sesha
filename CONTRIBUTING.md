@@ -11,17 +11,163 @@ smoothly.
 
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/<you>/sesha.git`
-3. Create a branch: `git checkout -b my-feature`
-4. Make your changes
-5. Run tests: `go test ./... -race`
-6. Run lints: `golangci-lint run` (optional)
-7. Submit a pull request
+3. Set up branches: `git fetch origin develop && git checkout develop`
+4. Create a feature branch: `git checkout -b feat/my-feature`
+5. Make your changes (one concern per branch — see below)
+6. Commit using [Conventional Commits](#commit-messages) format
+7. Run tests: `go test ./... -race`
+8. Run lints: `golangci-lint run` (optional)
+9. Submit a pull request **targeting `develop`**
 
 ### Development Requirements
 
 - Go 1.24+
 - Linux (for running checks — tests use temp files and mocks)
 - [golangci-lint](https://golangci-lint.run/) (optional, for lint checks)
+
+---
+
+## Branching Model
+
+This project uses a **Gitflow-lite** branching strategy:
+
+```text
+main          ← stable releases only (tagged)
+  └── develop ← integration branch for all work
+        ├── feat/...    ← new features
+        ├── fix/...     ← bug fixes
+        └── chore/...   ← tooling, docs, CI
+```
+
+| Branch type | Forks from | Merges to | Naming convention |
+|-------------|------------|-----------|-------------------|
+| Feature     | `develop`  | `develop` | `feat/short-desc` |
+| Bug fix     | `develop`  | `develop` | `fix/short-desc` |
+| Chore       | `develop`  | `develop` | `chore/short-desc` |
+| Release     | `develop`  | `main` + `develop` | `release/x.y.z` |
+| Hotfix      | `main`     | `main` + `develop` | `hotfix/short-desc` |
+
+**Rules:**
+
+- All feature/fix/chore PRs target `develop`, never `main` directly
+- `main` only receives merges from `release/*` or `hotfix/*` branches
+- Release branches are created when `develop` is ready for a release (see
+  [docs/release-process.md](docs/release-process.md))
+- Hotfix branches fork from `main` for urgent production fixes and merge back
+  to both `main` and `develop`
+
+---
+
+## Commit Messages
+
+All commits **must** follow [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/).
+This is enforced by CI on every pull request.
+
+```text
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Allowed types:** `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`,
+`build`, `perf`, `style`
+
+**Optional scopes:** `engine`, `loader`, `output`, `context`, `cli`, `checks`,
+`release`
+
+**Examples:**
+
+```text
+feat(engine): add kernel_param_value function
+fix(loader): reject checks with empty steps array
+test(engine): add tests for kernel_param_value
+chore(release): v1.0.11
+docs: update writing-checks guide with new function
+ci: add commit message linting workflow
+```
+
+**Bad examples** (CI will reject these):
+
+```text
+update stuff                    # no type prefix
+feat: Add thing and fix bug     # two concerns in one commit
+v1.0.11: release                # not conventional commits format
+```
+
+---
+
+## One Concern Per PR
+
+Each pull request must address **exactly one concern**. This means:
+
+- **One feature** (e.g., a new check function) — may include its tests
+- **One bug fix** (e.g., a loader edge case) — must include a regression test
+- **One chore** (e.g., CI config change, dependency update)
+
+**Do NOT mix** features with release tooling, bug fixes with refactors, or
+multiple unrelated changes in a single PR. If a feature requires a refactor
+first, submit the refactor as a separate PR.
+
+This ensures:
+
+- Reviews are focused and manageable
+- Any single change can be reverted cleanly
+- The git history tells a clear story
+
+---
+
+## Test Requirements
+
+Every code change (`feat` or `fix`) **must include tests**. PRs without tests
+for behavioural changes will be rejected.
+
+### What to test
+
+- **New functions**: unit tests with table-driven cases covering happy path,
+  edge cases, and error conditions
+- **Bug fixes**: a regression test that fails without the fix and passes with it
+- **New checks (YAML)**: validated by the existing `check_library_test.go`
+  integration test (just place the file in `checks/`)
+
+### Testing patterns used in this project
+
+- **Table-driven tests** with `t.Run()` subtests
+- **`t.TempDir()`** for file isolation — never touch real system files
+- **`testify/assert` + `testify/require`** for assertions
+- **Golden files** for JSON/JSONL output (`UPDATE_GOLDEN=1`)
+- **Behavioural assertions** (substring matching) for text output
+- **External test packages** (`engine_test`, `loader_test`) for public API tests
+- **Integration tests** wiring real components with zero mocks
+- **Fuzz tests** for security-sensitive input parsing
+
+### Example test structure
+
+```go
+func TestMyFunction(t *testing.T) {
+    tests := []struct {
+        name    string
+        input   string
+        want    string
+        wantErr bool
+    }{
+        {"valid input", "foo", "bar", false},
+        {"empty input", "", "", true},
+    }
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            got, err := MyFunction(tt.input)
+            if tt.wantErr {
+                require.Error(t, err)
+                return
+            }
+            require.NoError(t, err)
+            assert.Equal(t, tt.want, got)
+        })
+    }
+}
+```
 
 ---
 
