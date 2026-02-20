@@ -1,0 +1,44 @@
+id: auth_su_restricted
+name: su access restricted
+author: sesha-project
+version: "1.0"
+description: Verify that /etc/pam.d/su restricts use of su to members of the wheel or sudo group via pam_wheel.so.
+severity: medium
+category: authentication
+supported_os:
+  - linux
+tags:
+  - cis-benchmark
+  - privilege-escalation
+  - access-control
+
+steps:
+  - function: file_exists
+    args:
+      path: /etc/pam.d/su
+
+  - function: file_contains
+    args:
+      path: /etc/pam.d/su
+      pattern: "(?m)^\\s*auth\\s+required\\s+pam_wheel\\.so\\b.*(group=(wheel|sudo))?"
+
+requirements:
+  privilege: standard
+  note: Reads /etc/pam.d/su (typically world-readable).
+
+impact: |
+  If su is unrestricted, any local user who can guess or obtain the root password can switch to root, bypassing intended administrative controls.
+explain: |
+  pam_wheel.so limits su access to a designated administrative group (commonly wheel, sometimes sudo), enforcing least privilege and reducing the attack surface for privilege escalation.
+likelihood: possible
+break_risk: |
+  Restricting su may break workflows for administrators not in the allowed group. Ensure legitimate admins are members of wheel or sudo before enabling this restriction.
+
+references:
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux
+
+remediation: |
+  Restrict su via pam_wheel.so. Add (or uncomment) a line like one of the following in /etc/pam.d/su:
+    auth required pam_wheel.so use_uid group=wheel
+    auth required pam_wheel.so use_uid group=sudo
+  Then ensure authorized admins are members of the selected group.
