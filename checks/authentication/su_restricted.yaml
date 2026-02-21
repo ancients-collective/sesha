@@ -1,0 +1,39 @@
+id: su_restricted
+name: su restricted via pam_wheel
+author: sesha-project
+version: "1.0"
+description: Verify that /etc/pam.d/su enforces pam_wheel.so, restricting su access to a designated group and preventing unprivileged users from attempting root authentication.
+severity: medium
+category: authentication
+supported_os:
+  - linux
+tags:
+  - cis-benchmark
+  - privilege-escalation
+  - access-control
+
+steps:
+  - function: file_contains
+    args:
+      path: /etc/pam.d/su
+      pattern: "^\\s*auth\\s+required\\s+pam_wheel\\.so(\\s|$)"
+
+impact: |
+  Without pam_wheel.so, any local user can attempt su to root. This enables brute-force password guessing against the root account with no rate limiting beyond PAM defaults. In shared or multi-tenant environments, this significantly increases the attack surface for privilege escalation.
+explain: |
+  The pam_wheel.so module restricts su usage to members of a designated group (wheel by default, or sudo on Debian-based systems). When configured as "auth required", PAM rejects su attempts from users not in the group before even prompting for a password. This check verifies that pam_wheel.so is enabled — the specific group configured is left to the administrator. This is a CIS Level 1 recommendation for all Linux distributions.
+likelihood: possible
+break_risk: |
+  Enabling pam_wheel.so means only wheel/sudo group members can use su. Users who currently rely on su but are not in the wheel group will lose access. Verify group membership before applying. Sudo access is not affected by this change.
+remediation: |
+  Uncomment or add the pam_wheel.so line in /etc/pam.d/su:
+    auth required pam_wheel.so
+  On Debian/Ubuntu, use the sudo group instead:
+    auth required pam_wheel.so group=sudo
+  Verify the user is in the correct group:
+    groups <username>
+  Add a user to the wheel group if needed:
+    usermod -aG wheel <username>
+references:
+  - https://man7.org/linux/man-pages/man8/pam_wheel.8.html
+  - https://www.cisecurity.org/benchmark/distribution_independent_linux
