@@ -1,8 +1,8 @@
 id: su_restricted
-name: su restricted to wheel/sudo group
+name: su restricted via pam_wheel
 author: sesha-project
 version: "1.0"
-description: Verify that /etc/pam.d/su requires membership in the wheel or sudo group to use su, preventing unprivileged users from attempting root authentication.
+description: Verify that /etc/pam.d/su enforces pam_wheel.so, restricting su access to a designated group and preventing unprivileged users from attempting root authentication.
 severity: medium
 category: authentication
 supported_os:
@@ -21,7 +21,7 @@ steps:
 impact: |
   Without pam_wheel.so, any local user can attempt su to root. This enables brute-force password guessing against the root account with no rate limiting beyond PAM defaults. In shared or multi-tenant environments, this significantly increases the attack surface for privilege escalation.
 explain: |
-  The pam_wheel.so module restricts su usage to members of the wheel group (or sudo group on Debian-based systems). When configured as "auth required", PAM rejects su attempts from users not in the group before even prompting for a password. This is a CIS Level 1 recommendation for all Linux distributions.
+  The pam_wheel.so module restricts su usage to members of a designated group (wheel by default, or sudo on Debian-based systems). When configured as "auth required", PAM rejects su attempts from users not in the group before even prompting for a password. This check verifies that pam_wheel.so is enabled — the specific group configured is left to the administrator. This is a CIS Level 1 recommendation for all Linux distributions.
 likelihood: possible
 break_risk: |
   Enabling pam_wheel.so means only wheel/sudo group members can use su. Users who currently rely on su but are not in the wheel group will lose access. Verify group membership before applying. Sudo access is not affected by this change.

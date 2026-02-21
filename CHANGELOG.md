@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `su_restricted` check — verify /etc/pam.d/su requires wheel/sudo group membership (CIS benchmark)
+- `su_restricted` check — verify /etc/pam.d/su enforces pam_wheel.so restriction (CIS benchmark)
 
 ## [1.0.9] — 2026-02-13
 
