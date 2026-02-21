@@ -13,9 +13,8 @@ smoothly.
 2. Clone your fork: `git clone https://github.com/<you>/sesha.git`
 3. Create a branch: `git checkout -b my-feature`
 4. Make your changes
-5. Run tests: `go test ./... -race`
-6. Run lints: `golangci-lint run` (optional)
-7. Submit a pull request
+5. Validate locally — see [Before You Commit](#before-you-commit)
+6. Submit a pull request
 
 ### Development Requirements
 
@@ -51,6 +50,123 @@ fix a failure:
 - Add `references` linking to relevant standards (CIS, STIG, etc.)
 - Consider adding `impact`, `explain`, and `break_risk` for extra context
 - Use `acceptable` blocks for checks that legitimately don't apply in some environments
+
+---
+
+## Code Style
+
+- All Go code must be formatted with `gofmt -s` — this is enforced in CI
+- Cyclomatic complexity must stay at or below 15 (checked by `make lint`)
+- Run `golangci-lint run` for the full linter suite — see
+  [.golangci.yml](.golangci.yml) for the enabled linters
+- Wrap errors with context: `fmt.Errorf("doing something: %w", err)` — do not
+  discard or swallow errors
+- No panics — return errors to the caller for graceful handling
+
+---
+
+## Before You Commit
+
+Run these checks locally before committing to catch issues early:
+
+```bash
+gofmt -s -w .                          # auto-format all Go files
+make lint                              # verify formatting + complexity
+make test                              # run full test suite
+golangci-lint run                      # full linter suite (optional but recommended)
+./sesha --validate ./checks            # validate YAML checks (if changed)
+```
+
+For output format changes, update golden files first, then verify:
+
+```bash
+make update-golden                     # regenerate golden test files
+make test                              # confirm tests pass with updated golden files
+```
+
+---
+
+## Commit Messages
+
+All commits must follow
+[Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/):
+
+```text
+<type>[optional scope]: <description>
+```
+
+**Types:** `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`, `build`,
+`perf`, `style`
+
+**Scopes:** `engine`, `loader`, `output`, `context`, `cli`, `checks`, `release`
+
+Examples:
+
+```text
+feat(engine): add kernel_param_value function
+fix(loader): reject checks with empty steps array
+docs: update writing-checks guide with new function
+chore(release): v1.0.11
+```
+
+---
+
+## Pull Request Expectations
+
+- **Single concern** — each PR addresses exactly one feature, one fix, or one
+  chore. Do not mix unrelated changes. If a feature requires a prerequisite
+  refactor, submit the refactor as a separate PR first.
+- **Tests required** for all `feat` and `fix` changes — see
+  [test coverage](#test-coverage) for full requirements.
+- **CHANGELOG.md updated** for `feat` and `fix` changes.
+- **`make test` must pass** before requesting review.
+- Provide a clear description of what the PR does and how to verify it.
+
+---
+
+## Code Review Focus
+
+Code style, formatting, linting, and unit test correctness are handled by
+automated CI checks — PRs cannot merge until CI passes. Reviewers should not
+comment on these areas.
+
+When reviewing, focus on concrete issues that automation cannot catch. Do not
+summarise, explain, or restate what the PR does — the author's description
+covers that.
+
+Reviewers should focus on three areas:
+
+### Security
+
+This is a security auditing tool. Changes must not weaken its own security:
+
+- Modifications to the command allowlist (`internal/engine/allowlist.go`) that
+  add commands or relax validation
+- Path traversal risks — all file paths must be validated as absolute with no
+  `..` components (`internal/engine/security.go`)
+- Changes that raise file read limits (currently 10 MB) or regex length limits
+  (currently 1024 chars)
+- Command injection, shell expansion, or unsanitised input in check execution
+  paths
+- Hardcoded credentials, secrets, or sensitive paths in check definitions
+
+### Maintainability
+
+- Logical correctness — does the change do what it claims?
+- Error values that are silently discarded or not wrapped with context
+- Use of `panic` — errors must be returned to the caller
+- Test code that touches real system files instead of using `t.TempDir()`
+- Duplicate check IDs across YAML files in `checks/`
+
+### Test coverage
+
+- New features (`feat`) and bug fixes (`fix`) must include tests
+- Tests should cover the happy path, edge cases, and error conditions
+- New YAML checks must be validated by `check_library_test.go` and must include
+  functional tests that verify the check behaves correctly when executed
+- Overall repo test coverage must remain at or above 80%
+- No Go files may be excluded from code coverage — do not use coverage skip
+  directives or exclude lists
 
 ---
 
