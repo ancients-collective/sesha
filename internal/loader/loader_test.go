@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -859,4 +860,96 @@ remediation: "fix it"`
 	require.Len(t, errs, 1, "should report one duplicate error")
 	assert.Contains(t, errs[0].Error(), "duplicate check ID")
 	assert.Contains(t, errs[0].Error(), "dup_val")
+}
+
+// --- LoadFromFS tests ---
+
+func TestLoadFromFS_SingleFile(t *testing.T) {
+	fsys := fstest.MapFS{
+		"ssh/root_login.yaml": &fstest.MapFile{Data: []byte(validTestYAML)},
+	}
+
+	loader := New(testKnownFunctions)
+	tests, errs := loader.LoadFromFS(fsys)
+
+	assert.Empty(t, errs)
+	require.Len(t, tests, 1)
+	assert.Equal(t, "ssh_root_login", tests[0].ID)
+}
+
+func TestLoadFromFS_MultipleSubdirectories(t *testing.T) {
+	fsys := fstest.MapFS{
+		"ssh/root_login.yaml": &fstest.MapFile{Data: []byte(validTestYAML)},
+		"firewall/ufw.yaml": &fstest.MapFile{Data: []byte(`id: ufw_active
+name: "UFW Active"
+description: "Check UFW is active"
+severity: high
+category: firewall
+steps:
+  - function: service_running
+    args:
+      name: ufw
+remediation: "Enable UFW"
+`)},
+	}
+
+	loader := New(testKnownFunctions)
+	tests, errs := loader.LoadFromFS(fsys)
+
+	assert.Empty(t, errs)
+	assert.Len(t, tests, 2)
+}
+
+func TestLoadFromFS_InvalidYAMLContinuesLoading(t *testing.T) {
+	fsys := fstest.MapFS{
+		"ssh/root_login.yaml": &fstest.MapFile{Data: []byte(validTestYAML)},
+		"bad/broken.yaml":     &fstest.MapFile{Data: []byte("id: [broken yaml")},
+	}
+
+	loader := New(testKnownFunctions)
+	tests, errs := loader.LoadFromFS(fsys)
+
+	assert.Len(t, errs, 1)
+	assert.Len(t, tests, 1)
+	assert.Equal(t, "ssh_root_login", tests[0].ID)
+}
+
+func TestLoadFromFS_DuplicateIDs(t *testing.T) {
+	fsys := fstest.MapFS{
+		"a/first.yaml":  &fstest.MapFile{Data: []byte(validTestYAML)},
+		"b/second.yaml": &fstest.MapFile{Data: []byte(validTestYAML)},
+	}
+
+	loader := New(testKnownFunctions)
+	tests, errs := loader.LoadFromFS(fsys)
+
+	assert.Len(t, tests, 1, "should keep only the first occurrence")
+	require.Len(t, errs, 1, "should report one duplicate error")
+	assert.Contains(t, errs[0].Error(), "duplicate check ID")
+	assert.Contains(t, errs[0].Error(), "ssh_root_login")
+}
+
+func TestLoadFromFS_EmptyFS(t *testing.T) {
+	fsys := fstest.MapFS{}
+
+	loader := New(testKnownFunctions)
+	tests, errs := loader.LoadFromFS(fsys)
+
+	assert.Empty(t, errs)
+	assert.Empty(t, tests)
+}
+
+func TestLoadFromFS_NonYAMLFilesSkipped(t *testing.T) {
+	fsys := fstest.MapFS{
+		"ssh/root_login.yaml": &fstest.MapFile{Data: []byte(validTestYAML)},
+		"readme.txt":          &fstest.MapFile{Data: []byte("not yaml")},
+		"config.json":         &fstest.MapFile{Data: []byte(`{"key": "value"}`)},
+		"embed.go":            &fstest.MapFile{Data: []byte("package checks")},
+	}
+
+	loader := New(testKnownFunctions)
+	tests, errs := loader.LoadFromFS(fsys)
+
+	assert.Empty(t, errs)
+	assert.Len(t, tests, 1)
 }
