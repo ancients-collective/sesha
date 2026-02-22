@@ -11,10 +11,15 @@ smoothly.
 
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/<you>/sesha.git`
-3. Create a branch: `git checkout -b my-feature`
-4. Make your changes
-5. Validate locally — see [Before You Commit](#before-you-commit)
-6. Submit a pull request
+3. Build the binary:
+   ```bash
+   cd sesha
+   go build -o sesha ./cmd/sesha
+   ```
+4. Create a branch: `git checkout -b my-feature`
+5. Make your changes
+6. Validate locally — see [Before You Commit](#before-you-commit)
+7. Submit a pull request
 
 ### Development Requirements
 

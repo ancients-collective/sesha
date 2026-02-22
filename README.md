@@ -29,40 +29,34 @@ Sesha contains synthetically generated code.
 
 ## Quick Start
 
+These examples assume `sesha` is installed and available in your `PATH` (see
+[Installation](#installation)).
+
 ```bash
-# Build
-go build -o sesha ./cmd/sesha
-
 # Run with the default checks directory
-sudo ./sesha
+sudo sesha
 
-# Run a single check
-sudo ./sesha --id passwd_exists
+# Run a single check by ID
+sudo sesha --id passwd_exists
 
 # Show all results (not just findings)
-sudo ./sesha --show all
+sudo sesha --show all
 
 # JSON output for automation
-sudo ./sesha --format json -o scan.json
+sudo sesha --format json -o scan.json
 
-# Validate checks without running them
-./sesha --validate ./checks
+# Validate check files without executing them
+sesha --validate ./checks
 ```
 
 ## Installation
 
-### From Source
-
-```bash
-git clone https://github.com/ancients-collective/sesha.git
-cd sesha
-go build -o sesha ./cmd/sesha
-sudo mv sesha /usr/local/bin/
-```
+Download a pre-built binary from the
+[latest release](https://github.com/ancients-collective/sesha/releases), or
+build from source — see [CONTRIBUTING.md](CONTRIBUTING.md#getting-started).
 
 ### Requirements
 
-- Go 1.24+ (build only)
 - Linux (runtime)
 
 ## Usage
