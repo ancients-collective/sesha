@@ -66,9 +66,15 @@ func (l *Loader) LoadTest(path string) (types.TestDefinition, error) {
 		return types.TestDefinition{}, fmt.Errorf("failed to read %q: %w", path, err)
 	}
 
+	return l.loadTestFromBytes(path, data)
+}
+
+// loadTestFromBytes unmarshals YAML data and validates the resulting TestDefinition.
+// The name parameter is used for error messages (typically a file path).
+func (l *Loader) loadTestFromBytes(name string, data []byte) (types.TestDefinition, error) {
 	var test types.TestDefinition
 	if err := yaml.Unmarshal(data, &test); err != nil {
-		return types.TestDefinition{}, fmt.Errorf("failed to parse YAML in %q: %w", path, err)
+		return types.TestDefinition{}, fmt.Errorf("failed to parse YAML in %q: %w", name, err)
 	}
 
 	if err := l.validateTest(test); err != nil {
@@ -76,6 +82,62 @@ func (l *Loader) LoadTest(path string) (types.TestDefinition, error) {
 	}
 
 	return test, nil
+}
+
+// LoadFromFS walks an fs.FS and loads all YAML check definitions found within it.
+// It returns all successfully loaded checks and a slice of errors for files that failed.
+// This is designed for use with embed.FS but works with any fs.FS implementation.
+func (l *Loader) LoadFromFS(fsys fs.FS) ([]types.TestDefinition, []error) {
+	var tests []types.TestDefinition
+	var errs []error
+	seen := make(map[string]string) // check ID -> file path
+
+	err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error accessing %q: %w", path, err))
+			return nil
+		}
+
+		if d.IsDir() {
+			return nil
+		}
+
+		ext := strings.ToLower(filepath.Ext(path))
+		if ext != ".yaml" && ext != ".yml" {
+			return nil
+		}
+
+		data, err := fs.ReadFile(fsys, path)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", path, err))
+			return nil
+		}
+
+		if len(data) > maxCheckFileBytes {
+			errs = append(errs, fmt.Errorf("check file %q too large: %d bytes (max: %d)", path, len(data), maxCheckFileBytes))
+			return nil
+		}
+
+		test, err := l.loadTestFromBytes(path, data)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", path, err))
+			return nil
+		}
+
+		if prevPath, exists := seen[test.ID]; exists {
+			errs = append(errs, fmt.Errorf("duplicate check ID %q: first defined in %s, duplicated in %s", test.ID, prevPath, path))
+			return nil
+		}
+		seen[test.ID] = path
+
+		tests = append(tests, test)
+		return nil
+	})
+	if err != nil {
+		errs = append(errs, fmt.Errorf("failed to walk embedded FS: %w", err))
+	}
+
+	return tests, errs
 }
 
 // LoadDirectory recursively loads all .yaml and .yml files from a directory.

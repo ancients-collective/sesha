@@ -18,7 +18,7 @@ Sesha contains synthetically generated code.
 ## Features
 
 - **13 built-in check functions** — file permissions, services, sysctls, kernel modules, mounts, and more
-- **YAML-driven checks** — write checks as simple YAML files, no code required
+- **YAML-driven checks** — built-in checks are embedded in the binary; write custom checks as simple YAML files, no code required
 - **Context-aware** — automatically detects OS, distro, and container/VM environment, then filters checks accordingly
 - **Profile support** — server, workstation, container, or auto-detect
 - **Severity overrides** — checks can adjust severity based on execution context
@@ -30,11 +30,11 @@ Sesha contains synthetically generated code.
 ## Quick Start
 
 ```bash
-# Build
-go build -o sesha ./cmd/sesha
-
-# Run with the default checks directory
+# Run with built-in embedded checks (default)
 sudo ./sesha
+
+# Run checks from a custom directory
+sudo ./sesha -c /etc/sesha/checks
 
 # Run a single check
 sudo ./sesha --id passwd_exists
@@ -45,8 +45,9 @@ sudo ./sesha --show all
 # JSON output for automation
 sudo ./sesha --format json -o scan.json
 
-# Validate checks without running them
-./sesha --validate ./checks
+# Validate custom check files without executing them
+./sesha --validate /path/to/custom/checks
+./sesha --validate my-check.yaml
 ```
 
 ## Installation
@@ -67,11 +68,15 @@ sudo mv sesha /usr/local/bin/
 
 ## Usage
 
+Sesha ships with built-in checks embedded directly in the binary — just run
+`sesha` and it works out of the box. Use `-c` / `--checks` to load custom
+checks from the filesystem instead.
+
 ```text
 Usage: sesha [options]
 
 Options:
-  -c,   --checks <dir>     Path to checks directory (default: ./checks)
+  -c,   --checks <dir>     Path to checks directory (default: embedded)
   -s,   --show <mode>      Output filter: findings, all, fail, pass (default: findings)
         --severity <list>   Severity filter (comma-separated):
         --sev <list>          critical, high, medium, low, info
@@ -85,7 +90,7 @@ Options:
         --id <check_id>     Run a single check by its ID
         --list-checks       List all available check IDs and exit
         --debug             Enable debug diagnostic output
-        --validate <path>   Validate YAML check file(s) without execution
+        --validate <path>   Validate YAML check file(s) without execution (file or directory)
 ```
 
 ### Exit Codes

@@ -214,7 +214,8 @@ func TestExitCodeLogic(t *testing.T) {
 func TestParseFlags_Defaults(t *testing.T) {
 	cfg, err := parseFlags([]string{})
 	assert.NoError(t, err)
-	assert.Equal(t, "./checks", cfg.ChecksDir)
+	assert.Equal(t, "", cfg.ChecksDir)
+	assert.False(t, cfg.ChecksExplicit)
 	assert.Equal(t, "findings", cfg.Show)
 	assert.Equal(t, "", cfg.Severity)
 	assert.False(t, cfg.Verify)
@@ -229,6 +230,27 @@ func TestParseFlags_Defaults(t *testing.T) {
 	assert.False(t, cfg.Debug)
 	assert.Equal(t, "", cfg.Validate)
 	assert.Equal(t, "", cfg.Tags)
+}
+
+func TestParseFlags_ChecksExplicit(t *testing.T) {
+	cfg, err := parseFlags([]string{"-c", "/custom/path"})
+	assert.NoError(t, err)
+	assert.Equal(t, "/custom/path", cfg.ChecksDir)
+	assert.True(t, cfg.ChecksExplicit)
+}
+
+func TestParseFlags_ChecksExplicitLong(t *testing.T) {
+	cfg, err := parseFlags([]string{"--checks", "/custom/path"})
+	assert.NoError(t, err)
+	assert.Equal(t, "/custom/path", cfg.ChecksDir)
+	assert.True(t, cfg.ChecksExplicit)
+}
+
+func TestParseFlags_ChecksNotExplicit(t *testing.T) {
+	cfg, err := parseFlags([]string{"--show", "all"})
+	assert.NoError(t, err)
+	assert.Equal(t, "", cfg.ChecksDir)
+	assert.False(t, cfg.ChecksExplicit)
 }
 
 func TestParseFlags_AllLongFlags(t *testing.T) {
