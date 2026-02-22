@@ -14,6 +14,7 @@ import (
 	"github.com/fatih/color"
 	"golang.org/x/term"
 
+	"github.com/ancients-collective/sesha/checks"
 	sysdetect "github.com/ancients-collective/sesha/internal/context"
 	"github.com/ancients-collective/sesha/internal/engine"
 	"github.com/ancients-collective/sesha/internal/loader"
@@ -27,21 +28,22 @@ var version = "1.0.9"
 
 // Config holds all parsed CLI flag values.
 type Config struct {
-	ChecksDir  string
-	Show       string
-	Severity   string
-	Verify     bool
-	Profile    string
-	Explain    bool
-	Format     string
-	NoColor    bool
-	OutputFile string
-	Quiet      bool
-	CheckID    string
-	ListChecks bool
-	Debug      bool
-	Validate   string
-	Tags       string
+	ChecksDir      string
+	ChecksExplicit bool
+	Show           string
+	Severity       string
+	Verify         bool
+	Profile        string
+	Explain        bool
+	Format         string
+	NoColor        bool
+	OutputFile     string
+	Quiet          bool
+	CheckID        string
+	ListChecks     bool
+	Debug          bool
+	Validate       string
+	Tags           string
 }
 
 // parseFlags parses command-line arguments into a Config using a dedicated FlagSet,
@@ -51,8 +53,8 @@ func parseFlags(args []string) (*Config, error) {
 	fs := flag.NewFlagSet("sesha", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 
-	fs.StringVar(&cfg.ChecksDir, "checks", "./checks", "Path to the checks directory")
-	fs.StringVar(&cfg.ChecksDir, "c", "./checks", "Path to the checks directory (shorthand)")
+	fs.StringVar(&cfg.ChecksDir, "checks", "", "Path to the checks directory")
+	fs.StringVar(&cfg.ChecksDir, "c", "", "Path to the checks directory (shorthand)")
 	fs.StringVar(&cfg.Show, "show", "findings", "Which results to display: findings, all, fail, pass")
 	fs.StringVar(&cfg.Show, "s", "findings", "Which results to display (shorthand)")
 	fs.StringVar(&cfg.Severity, "severity", "", "Filter by severity (comma-separated): critical,high,medium,low,info")
@@ -84,7 +86,7 @@ func parseFlags(args []string) (*Config, error) {
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "  Usage: sesha [options]\n\n")
 		fmt.Fprintf(os.Stderr, "  Options:\n")
-		fmt.Fprintf(os.Stderr, "    -c,  --checks <dir>       Path to checks directory (default: ./checks)\n")
+		fmt.Fprintf(os.Stderr, "    -c,  --checks <dir>       Path to checks directory (default: embedded)\n")
 		fmt.Fprintf(os.Stderr, "    -s,  --show <mode>        Output filter: findings, all, fail, pass (default: findings)\n")
 		fmt.Fprintf(os.Stderr, "         --severity <list>    Filter by severity: critical, high, medium, low, info\n")
 		fmt.Fprintf(os.Stderr, "         --sev <list>         (shorthand for --severity)\n")
@@ -125,6 +127,13 @@ func parseFlags(args []string) (*Config, error) {
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
+
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "checks" || f.Name == "c" {
+			cfg.ChecksExplicit = true
+		}
+	})
+
 	return cfg, nil
 }
 
@@ -287,6 +296,12 @@ func verifyChecksDir(cfg *Config) int {
 	if !cfg.Verify {
 		return -1
 	}
+	if !cfg.ChecksExplicit {
+		if !cfg.Quiet {
+			fmt.Fprintf(os.Stderr, "  ▸ Skipping --verify: embedded checks are immutable and trusted\n")
+		}
+		return -1
+	}
 	if !cfg.Quiet {
 		fmt.Fprintf(os.Stderr, "  ▸ Verifying checks directory: %s ...\n", cfg.ChecksDir)
 	}
@@ -309,7 +324,22 @@ func verifyChecksDir(cfg *Config) int {
 func loadAndFilterChecks(cfg *Config, tagsFilter map[string]bool) ([]types.TestDefinition, int) {
 	registry := engine.NewFunctionRegistry(nil)
 	ldr := loader.New(registry.FunctionNames())
-	tests, errs := ldr.LoadDirectory(cfg.ChecksDir)
+
+	var tests []types.TestDefinition
+	var errs []error
+
+	if cfg.ChecksExplicit {
+		if cfg.Debug {
+			fmt.Fprintf(os.Stderr, "  [debug] Using checks from filesystem: %s\n", cfg.ChecksDir)
+		}
+		tests, errs = ldr.LoadDirectory(cfg.ChecksDir)
+	} else {
+		if cfg.Debug {
+			fmt.Fprintf(os.Stderr, "  [debug] Using embedded checks\n")
+		}
+		tests, errs = ldr.LoadFromFS(checks.FS)
+	}
+
 	if !cfg.Quiet && len(errs) > 0 {
 		for _, e := range errs {
 			fmt.Fprintf(os.Stderr, "    ⚠ Load error: %v\n", e)
@@ -317,7 +347,11 @@ func loadAndFilterChecks(cfg *Config, tagsFilter map[string]bool) ([]types.TestD
 	}
 	if len(tests) == 0 {
 		if !cfg.Quiet {
-			fmt.Fprintf(os.Stderr, "  ✗ No checks found in %s\n", cfg.ChecksDir)
+			if cfg.ChecksExplicit {
+				fmt.Fprintf(os.Stderr, "  ✗ No checks found in %s\n", cfg.ChecksDir)
+			} else {
+				fmt.Fprintf(os.Stderr, "  ✗ No checks found in embedded checks\n")
+			}
 		}
 		return nil, 1
 	}

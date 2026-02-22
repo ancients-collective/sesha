@@ -7,7 +7,7 @@ checks for sesha. You don't need to write any Go code — everything is YAML.
 
 A **check** is a YAML file that defines a single security assertion. Each check is self-contained — it describes *what* to verify, *when* it applies, *why* it matters, and *how* to fix a failure. sesha loads these files at runtime, so you never need to write or compile Go code.
 
-Checks live in a directory (default: `./checks`). sesha recursively finds all `.yaml` and `.yml` files. You can organize them into subdirectories however you like:
+Built-in checks are embedded in the binary by default. When using `-c` / `--checks` to load custom checks, sesha recursively finds all `.yaml` and `.yml` files. You can organize them into subdirectories however you like:
 
 ```text
 checks/
