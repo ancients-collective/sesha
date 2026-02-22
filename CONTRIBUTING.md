@@ -11,11 +11,16 @@ smoothly.
 
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/<you>/sesha.git`
-3. Create a branch: `git checkout -b my-feature`
-4. Make your changes
-5. Run tests: `go test ./... -race`
-6. Run lints: `golangci-lint run` (optional)
-7. Submit a pull request
+3. Build the binary:
+   ```bash
+   cd sesha
+   go build -o sesha ./cmd/sesha
+   ```
+4. Create a branch: `git checkout -b my-feature`
+5. Make your changes
+6. Run tests: `go test ./... -race`
+7. Run lints: `golangci-lint run` (optional)
+8. Submit a pull request
 
 ### Development Requirements
 
