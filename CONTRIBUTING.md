@@ -121,6 +121,12 @@ chore(release): v1.0.11
 - **Single concern** — each PR addresses exactly one feature, one fix, or one
   chore. Do not mix unrelated changes. If a feature requires a prerequisite
   refactor, submit the refactor as a separate PR first.
+- **Clean commit history** — PRs should be rebase-mergeable. Each commit must
+  be a self-contained, logical unit of work with a meaningful message following
+  [conventional commits](#commit-messages). Avoid `fixup!`, `squash!`, and WIP
+  commits in the final PR — use `git rebase -i` to clean up your history before
+  requesting review. The goal is a history that reads well on `main` without
+  needing to squash.
 - **Tests required** for all `feat` and `fix` changes — see
   [test coverage](#test-coverage) for full requirements.
 - **CHANGELOG.md updated** for `feat` and `fix` changes.
@@ -139,7 +145,7 @@ When reviewing, focus on concrete issues that automation cannot catch. Do not
 summarise, explain, or restate what the PR does — the author's description
 covers that.
 
-Reviewers should focus on three areas:
+Reviewers should focus on four areas:
 
 ### Security
 
@@ -172,6 +178,22 @@ This is a security auditing tool. Changes must not weaken its own security:
 - Overall repo test coverage must remain at or above 80%
 - No Go files may be excluded from code coverage — do not use coverage skip
   directives or exclude lists
+
+### Merge strategy
+
+The preferred merge method is **rebase merge**, which preserves each commit as
+a separate entry on `main`. Before approving, check that the commit history is
+clean:
+
+- Each commit is a self-contained, logical change
+- Commit messages follow [conventional commits](#commit-messages)
+- No `fixup!`, `squash!`, or WIP commits remain
+
+If the branch contains fixup or WIP commits that the author has not cleaned up,
+request that they rebase interactively (`git rebase -i`) to tidy the history.
+If that is not practical (e.g., the author is unavailable or the PR is
+time-sensitive), use **squash merge** instead to collapse the history into a
+single clean commit.
 
 ---
 

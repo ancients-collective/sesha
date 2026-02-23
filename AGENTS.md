@@ -26,6 +26,7 @@ expectations. When reviewing, check:
 - [ ] Does the change address a single concern?
 - [ ] Are there tests covering the new/changed behaviour?
 - [ ] Do commit messages follow [conventional commits](CONTRIBUTING.md#commit-messages) format?
+- [ ] Is the commit history clean enough for a [rebase merge](CONTRIBUTING.md#merge-strategy)? If not, use squash merge.
 - [ ] For engine changes: are [security boundaries](CONTRIBUTING.md#security) respected?
 - [ ] For new checks: does `./sesha --validate ./checks` pass?
 - [ ] For output changes: are golden files updated (`make update-golden`)?
